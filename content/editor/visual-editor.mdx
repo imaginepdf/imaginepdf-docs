@@ -1,0 +1,64 @@
+---
+title: Visual editor
+description: Compose documents on a canvas, bind fields, save designs, and generate PDFs interactively or in batch.
+---
+
+import { Callout } from 'nextra/components'
+
+# Visual editor
+
+The visual editor is the canvas app at
+[imaginepdf.com](https://imaginepdf.com). It is where the person who owns the
+brand owns the template — no code required. Everything you build here produces
+the same designs the [API](/api/overview) and the
+[Claude Code plugin](/plugin/claude-code) work with.
+
+## The canvas
+
+Compose a document by placing elements on one or more pages:
+
+- **Text** — headings, paragraphs, labels, with font and alignment control.
+- **Tables** — rows and columns for line items, with styling templates.
+- **Images** — logos, photos, signatures (backed by [assets](/concepts/assets)).
+- **QR codes** and **barcodes** — encode links or identifiers.
+- **Shapes** — rules, boxes, and accents.
+
+Elements are positioned precisely, so what you design is what renders.
+
+## Binding fields
+
+Select an element and bind its content to a **named field** to make it
+fillable. A field bound here becomes a [variable](/concepts/variables) on the
+design — the same name you later pass in `data` when generating.
+
+<Callout type="info">
+  One bound template covers every variation. Bind the customer name once, and
+  the design serves every customer without forking files.
+</Callout>
+
+## Saving and publishing
+
+- **Save** a document as a reusable **design** in your workspace.
+- Optionally **publish** a design as a **template** so teammates can start from
+  it.
+- Team **workspaces** keep designs and assets shared, not stuck on one laptop.
+
+## Generating
+
+From a saved design you can:
+
+- **Generate interactively** — fill the fields in a form and download one PDF.
+- **Generate in batch** — upload a dataset and produce one PDF per row, bundled
+  into a ZIP. The same capability is available over the API; see
+  [Batch generation](/api/batch).
+
+## From editor to automation
+
+The editor and the API are two views of the same designs. A typical lifecycle:
+
+1. Design and refine the template visually.
+2. Hand the `designId` to your product and generate via
+   [`POST /generate`](/api/generate), or to a teammate using the
+   [Claude Code plugin](/plugin/claude-code).
+3. Iterate on the template in the editor — integrations keep working, because
+   they reference the design by id.

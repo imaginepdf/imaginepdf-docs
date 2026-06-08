@@ -1,0 +1,142 @@
+---
+title: Batch generation
+description: Generate many PDFs from a dataset — one document per row — then poll and download the ZIP.
+---
+
+import { Callout } from 'nextra/components'
+
+# Batch generation
+
+Batch generation produces one PDF per row of a dataset and bundles the results
+into a ZIP. It is an **asynchronous** job: you submit rows, poll for status, then
+download.
+
+<Callout type="warning">
+  Batch is plan-gated by the `batchGenerate` feature. Without it, these
+  endpoints return HTTP **403** `INSUFFICIENT_PERMISSIONS`. Each row costs 1
+  credit; the whole batch is checked for credit coverage before it is queued.
+  See [Credits & plans](/concepts/credits-and-plans).
+</Callout>
+
+All paths are relative to `https://api.imaginepdf.com/api/v1`.
+
+---
+
+## Submit a batch
+
+```
+POST /batch/generate?design=:designId
+```
+
+**Query parameters**
+
+| Param | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `design` | string | yes | The design id to render for every row. |
+
+**Body**
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `rows` | array | yes | Each element is a `data` object (variable → value). At least 1 row. |
+
+```bash
+curl -X POST "https://api.imaginepdf.com/api/v1/batch/generate?design=design_abc123" \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rows": [
+      { "invoice_number": "INV-001", "customer_name": "Acme Corp",  "amount": "$100" },
+      { "invoice_number": "INV-002", "customer_name": "Globex Inc", "amount": "$250" }
+    ]
+  }'
+```
+
+**Response** `202 Accepted`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "jobId": "job_abc123xyz",
+    "status": "queued",
+    "total": 2,
+    "designId": "design_abc123"
+  },
+  "error": null
+}
+```
+
+The maximum number of rows per batch depends on your subscription plan.
+
+---
+
+## Poll job status
+
+```
+GET /batch/:jobId/status
+```
+
+```bash
+curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/status \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "jobId": "job_abc123xyz",
+    "status": "processing",
+    "total": 2,
+    "completed": 1,
+    "failed": 0,
+    "createdAt": "2026-06-08T12:00:00Z",
+    "updatedAt": "2026-06-08T12:01:00Z"
+  },
+  "error": null
+}
+```
+
+`status` is one of: `queued`, `processing`, `completed`, `failed`. Poll until it
+reaches `completed`.
+
+---
+
+## Download the result
+
+```
+GET /batch/:jobId/download
+```
+
+Returns a presigned URL to the output ZIP (one PDF per successful row).
+
+```bash
+curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/download \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "url": "https://storage.imaginepdf.com/batch_output.zip?signature=...",
+    "expiresIn": 3600
+  },
+  "error": null
+}
+```
+
+```bash
+curl -L -o batch.zip "<url>"
+```
+
+## A typical loop
+
+1. `POST /batch/generate` → get `jobId`.
+2. `GET /batch/:jobId/status` every few seconds until `status` is `completed`.
+3. `GET /batch/:jobId/download` → fetch the ZIP within `expiresIn` seconds.

@@ -1,0 +1,99 @@
+---
+title: Designs
+description: A design is a document layout — pages of positioned elements, authored with a catalog of tools.
+---
+
+import { Callout } from 'nextra/components'
+
+# Designs
+
+A **design** is a reusable document layout. It is the thing you author once and
+generate from many times. Internally a design is a tree of **pages** and
+**elements** — the shape is defined by the shared `pdftreejs` library, so the
+visual editor, the API, and the renderer all agree on it.
+
+## The design tree
+
+- A design has one or more **pages**.
+- Each page holds positioned **elements**.
+- Element types include **text**, **tables**, **images**, **QR codes**,
+  **barcodes**, and shapes.
+- Elements are placed with explicit coordinates and sizes.
+
+You never hand-write the tree. You build it by issuing **tool calls** — small,
+validated operations like `add_page` and `add_element` — and ImaginePDF applies
+them to the design.
+
+## Authoring with tools
+
+Every change to a design's structure is a tool call of the form:
+
+```json
+{ "tool": "add_element", "input": { /* fields for this tool */ } }
+```
+
+You can pass tool calls when you create a design or when you update it:
+
+- `POST /api/v1/designs` — create a design, optionally with an initial list of
+  tools.
+- `PATCH /api/v1/designs/:id` — apply more tools (and/or rename / describe).
+
+The full set of available tools and their input schemas comes from the catalog:
+
+```bash
+curl https://api.imaginepdf.com/api/v1/tools \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tools": [
+      { "name": "add_page", "description": "...", "input": { /* schema */ } },
+      { "name": "add_element", "description": "...", "input": { /* schema */ } }
+    ]
+  },
+  "error": null
+}
+```
+
+<Callout type="info">
+  Tool inputs are validated **server-side** by `pdftreejs`. The API passes your
+  tool calls through as-is, so always shape `input` to match the catalog schema
+  from `GET /api/v1/tools`.
+</Callout>
+
+## Reading a design back
+
+`GET /api/v1/designs/:id` returns the full design including its `config` (the
+tree) and its `variables` (the named fields it exposes):
+
+```json
+{
+  "status": "success",
+  "data": {
+    "designId": "design_abc123",
+    "name": "Invoice",
+    "config": { /* the full design tree */ },
+    "variables": { "customer_name": { /* schema */ } },
+    "fileSize": 12345,
+    "createdAt": "2026-06-08T12:00:00Z",
+    "modifiedAt": "2026-06-08T12:00:00Z"
+  },
+  "error": null
+}
+```
+
+## From design to PDF
+
+A design on its own is just a layout. To get a finished document you
+**generate** it — supplying values for any variables. See
+[Variables](/concepts/variables) for how binding works and
+[Generate a PDF](/api/generate) for the call.
+
+## Related
+
+- [Designs API](/api/designs) — full endpoint reference.
+- [Variables](/concepts/variables) — bind elements to named fields.
+- [Assets](/concepts/assets) — images and logos.

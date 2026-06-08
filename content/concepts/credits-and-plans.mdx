@@ -1,0 +1,55 @@
+---
+title: Credits & plans
+description: How PDF generation consumes credits, and which features your workspace plan gates.
+---
+
+import { Callout } from 'nextra/components'
+
+# Credits & plans
+
+ImaginePDF bills generation in **credits**, and gates some capabilities behind
+your workspace **plan**.
+
+## Credits
+
+- Generating a PDF costs **1 credit** per document.
+- A batch job costs **1 credit per row** — a 500-row batch needs 500 credits.
+- **Previews are free** — `GET /api/v1/preview` never consumes credits, so use
+  it freely while iterating.
+
+If your workspace has insufficient credits, the request fails with HTTP **402**
+and error code `INSUFFICIENT_CREDITS`:
+
+```json
+{
+  "status": "error",
+  "data": null,
+  "error": {
+    "code": "INSUFFICIENT_CREDITS",
+    "message": "Workspace does not have enough credits."
+  }
+}
+```
+
+<Callout type="warning">
+  Batch jobs check credit availability **before** queueing. If the whole batch
+  cannot be covered, the job is rejected rather than partially run.
+</Callout>
+
+## Plan-gated features
+
+Some endpoints require a plan that includes the relevant feature. When the plan
+does not, the API responds with HTTP **403** and `INSUFFICIENT_PERMISSIONS`.
+
+| Feature         | Gates                                   | Without it |
+| --------------- | --------------------------------------- | ---------- |
+| `useApiKeys`    | Creating and using API keys at all      | API-key routes return 403 |
+| `batchGenerate` | `POST /api/v1/batch/generate` and batch | Batch endpoints return 403 |
+
+Single-PDF generation, previews, designs, and assets are available on any plan
+that includes API access (`useApiKeys`).
+
+## Related
+
+- [Authentication](/api/authentication) — getting and scoping API keys.
+- [Errors](/api/errors) — the full error code table.

@@ -1,0 +1,86 @@
+---
+title: Variables
+description: Bind elements to named fields so one template covers every customer, invoice, or certificate.
+---
+
+import { Callout } from 'nextra/components'
+
+# Variables
+
+A **variable** is a named field in a design whose value is supplied at
+generation time. Binding an element to a variable is what makes a design a
+*template* instead of a fixed document: one layout covers every variation
+without forking files.
+
+## How binding works
+
+When you author text (or other element content), you reference a variable with
+a placeholder, conventionally `{{variable_name}}`:
+
+```json
+{
+  "tool": "add_element",
+  "input": {
+    "type": "text",
+    "text": "Invoice for {{customer_name}} — total {{amount}}",
+    "x": 48, "y": 48, "width": 400
+  }
+}
+```
+
+The design then exposes `customer_name` and `amount` as variables. You can see
+all of a design's variables in the `variables` field of
+`GET /api/v1/designs/:id`.
+
+## Supplying values at generation time
+
+When you generate, pass a `data` object whose keys are the variable names:
+
+```bash
+curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "customer_name": "Acme Corp",
+      "amount": "$1,000.00"
+    }
+  }'
+```
+
+Each value is substituted into the matching placeholder before the PDF is
+rendered.
+
+<Callout type="info">
+  Variables you do not supply fall back to whatever default the design defines
+  (often the placeholder text itself). Supply every variable you expect to see
+  filled in the output.
+</Callout>
+
+## Batch: one row, one document
+
+For batch generation the same idea scales: each **row** of your dataset is one
+`data` object, and ImaginePDF produces one PDF per row.
+
+```json
+{
+  "rows": [
+    { "customer_name": "Acme Corp",  "amount": "$1,000.00" },
+    { "customer_name": "Globex Inc", "amount": "$2,500.00" }
+  ]
+}
+```
+
+See [Batch generation](/api/batch).
+
+## Images as variables
+
+Image elements can be bound too — to swap a logo or a photo per document. The
+value you supply is an **asset reference** (`assets:<id>`) rather than a string.
+See [Assets](/concepts/assets).
+
+## Related
+
+- [Generate a PDF](/api/generate)
+- [Batch generation](/api/batch)
+- [Designs](/concepts/designs)

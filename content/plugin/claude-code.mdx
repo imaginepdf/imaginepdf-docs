@@ -1,0 +1,97 @@
+---
+title: Claude Code plugin
+description: Create and generate ImaginePDF documents from your terminal with the imaginepdf Claude Code plugin.
+---
+
+import { Callout } from 'nextra/components'
+
+# Claude Code plugin
+
+The **ImaginePDF plugin** for [Claude Code](https://claude.com/claude-code) lets
+you author designs and generate PDFs without leaving your terminal — invoices,
+receipts, certificates, reports, and letters, described in plain language. Under
+the hood it talks to the same [REST API](/api/overview) using your workspace
+**API key**.
+
+A common flow: author a base template from the terminal, open it in the
+[visual editor](/editor/visual-editor) to refine, then generate copies via the
+API or a dataset.
+
+## Prerequisites
+
+- [Claude Code](https://claude.com/claude-code).
+- An ImaginePDF workspace and a workspace **API key** (dashboard →
+  **Settings → API Keys**). The plan must include API access. See
+  [Authentication](/api/authentication).
+
+## Installation
+
+From the GitHub marketplace:
+
+```
+/plugin marketplace add imaginepdf/claude-imaginepdf
+/plugin install imaginepdf@imaginepdf
+```
+
+For local development against a checkout:
+
+```bash
+claude --plugin-dir /path/to/claude-imaginepdf
+```
+
+## Setup
+
+After enabling, configure the plugin via `/plugin` → **ImaginePDF**:
+
+- **API key** — your workspace key (`pc_live_…`), stored in your OS keychain.
+- **API base URL** — defaults to production (`https://api.imaginepdf.com`). Set
+  `http://localhost:3100` to target a local API.
+
+For local dev you can instead export environment variables:
+
+```bash
+export IMAGINEPDF_API_KEY="pc_live_..."
+export IMAGINEPDF_API_URL="http://localhost:3100"   # optional, defaults to prod
+```
+
+## Usage
+
+Ask Claude in natural language:
+
+```
+Create an invoice for Acme Corp, invoice #1042, dated today, for 3 items:
+Widget A ($50 x 2), Widget B ($75 x 1), Widget C ($30 x 5). Add a QR code
+linking to the payment page, and make the customer name a template variable.
+```
+
+Or invoke a skill directly:
+
+```
+/imaginepdf:create Generate a certificate of completion for "John Doe"
+```
+
+## Skills
+
+| Skill | Purpose |
+| --- | --- |
+| `imaginepdf:create` | Entry point — orchestrates authoring and generation. |
+| `imaginepdf:design-authoring` | Create or edit a design via tree operations. |
+| `imaginepdf:pdf-generation` | Render a design to a PDF, filling template variables. |
+
+## How it fits together
+
+```
+Claude Code  →  ImaginePDF plugin  →  ImaginePDF API  /api/v1  (X-API-Key)
+                                       (validates, applies tree ops, renders)
+```
+
+The plugin is a thin client over the public API: it issues the same
+`POST /api/v1/designs`, `PATCH /api/v1/designs/:id`, and
+`POST /api/v1/generate` calls documented in the [API Reference](/api/overview).
+Anything the plugin does, you can do directly over HTTP.
+
+<Callout type="info">
+  Designs created from the plugin live in your workspace just like any other —
+  open them in the [visual editor](/editor/visual-editor) to refine, or generate
+  them in [batch](/api/batch) from a dataset.
+</Callout>

@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ip-bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4F46E5"/>
+      <stop offset="0.55" stop-color="#A855F7"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#ip-bg)"/>
+  <!-- document with a folded top-right corner -->
+  <path d="M9 7.5C9 6.67 9.67 6 10.5 6H18l5 5v13.5c0 .83-.67 1.5-1.5 1.5h-11C9.67 26 9 25.33 9 24.5V7.5Z" fill="#FFFFFF"/>
+  <path d="M18 6l5 5h-3.6A1.4 1.4 0 0 1 18 9.6V6Z" fill="#E9D5FF"/>
+  <!-- content lines, last one accented like the "PDF" wordmark -->
+  <rect x="12" y="14.5" width="8" height="1.8" rx="0.9" fill="#6366F1"/>
+  <rect x="12" y="18" width="8" height="1.8" rx="0.9" fill="#C4B5FD"/>
+  <rect x="12" y="21.5" width="5" height="1.8" rx="0.9" fill="#F43F5E"/>
+</svg>

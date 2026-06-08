@@ -1,0 +1,63 @@
+---
+title: Authentication
+description: ImaginePDF API requests authenticate with a workspace-scoped API key in the X-API-Key header.
+---
+
+import { Callout } from 'nextra/components'
+
+# Authentication
+
+The REST API authenticates with a **workspace API key** sent in the `X-API-Key`
+header. Keys look like:
+
+```
+pc_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+## Creating a key
+
+1. Sign in at [imaginepdf.com](https://imaginepdf.com).
+2. Open **Settings → API Keys**.
+3. Create a key (workspace admins only). Optionally set an expiration date.
+4. Copy the key immediately — it is shown **only once**. Only a hash is stored,
+   so a lost key cannot be recovered; create a new one instead.
+
+<Callout type="warning">
+  Treat API keys like passwords. They carry the full permissions of the
+  workspace. Store them in a secret manager or environment variable — never in
+  source control or client-side code.
+</Callout>
+
+## Using a key
+
+Send it on every request:
+
+```bash
+curl https://api.imaginepdf.com/api/v1/designs \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+## Scope
+
+- **Workspace-scoped.** A key acts within exactly one workspace. Designs,
+  assets, credits, and batch jobs all belong to that workspace.
+- **Plan-gated.** API access itself is a plan feature (`useApiKeys`). If the
+  workspace plan does not include it, key creation and all key routes return
+  HTTP **403**. See [Credits & plans](/concepts/credits-and-plans).
+
+## Authentication errors
+
+| HTTP | `error.code` | Meaning |
+| ---- | ------------ | ------- |
+| 401 | `UNAUTHORIZED` | No key supplied. |
+| 401 | `INVALID_API_KEY` | Key is malformed or does not exist. |
+| 401 | `API_KEY_EXPIRED` | Key passed its expiration date. |
+| 403 | `INSUFFICIENT_PERMISSIONS` | Key is valid but the workspace plan lacks the feature. |
+
+See [Errors](/api/errors) for the complete table.
+
+<Callout type="info">
+  Browser sessions use cookies and Bearer tokens; the public API and the Claude
+  Code plugin use API keys. The two paths are independent — an API key is the
+  only credential you need for everything in this reference.
+</Callout>

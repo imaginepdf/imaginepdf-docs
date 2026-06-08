@@ -1,0 +1,62 @@
+---
+title: Errors
+description: The error envelope and the full table of error codes the ImaginePDF API returns.
+---
+
+import { Callout } from 'nextra/components'
+
+# Errors
+
+When a request fails, the API returns the standard envelope with `status:
+"error"`, a `null` `data`, and an `error` object carrying a stable `code` and a
+human-readable `message`:
+
+```json
+{
+  "status": "error",
+  "data": null,
+  "error": {
+    "code": "INSUFFICIENT_CREDITS",
+    "message": "Workspace does not have enough credits."
+  }
+}
+```
+
+<Callout type="info">
+  Branch your code on the HTTP status and `error.code`. The `message` is for
+  humans and may change; the `code` is part of the contract.
+</Callout>
+
+## Error codes
+
+| HTTP | `error.code` | When |
+| ---- | ------------ | ---- |
+| 400 | `VALIDATION_ERROR` | Request failed schema validation. |
+| 400 | `INVALID_INPUT` | A field value is not acceptable. |
+| 400 | `MISSING_REQUIRED_FIELD` | A required field or query param is absent. |
+| 401 | `UNAUTHORIZED` | No credential supplied. |
+| 401 | `INVALID_API_KEY` | API key is malformed or unknown. |
+| 401 | `API_KEY_EXPIRED` | API key passed its expiration date. |
+| 401 | `INVALID_TOKEN` | Bearer token is invalid (browser path). |
+| 401 | `TOKEN_EXPIRED` | Bearer token expired (browser path). |
+| 402 | `PAYMENT_REQUIRED` | Payment is required to proceed. |
+| 402 | `INSUFFICIENT_CREDITS` | Not enough credits for this generation. |
+| 403 | `FORBIDDEN` | Authenticated but not allowed. |
+| 403 | `INSUFFICIENT_PERMISSIONS` | Plan lacks the required feature (e.g. `useApiKeys`, `batchGenerate`). |
+| 404 | `NOT_FOUND` | Resource does not exist. |
+| 404 | `DESIGN_NOT_FOUND` | No such design in the workspace. |
+| 404 | `PDF_NOT_FOUND` | No such generated PDF / job output. |
+| 409 | `ALREADY_EXISTS` | Resource conflict. |
+| 409 | `DUPLICATE_ENTRY` | A unique constraint was violated. |
+| 500 | `INTERNAL_ERROR` | Unexpected server error. |
+| 500 | `DATABASE_ERROR` | Storage layer failed. |
+| 500 | `S3_ERROR` | Object storage failed. |
+
+## Handling errors well
+
+- **Retry** `5xx` responses with backoff; they are usually transient.
+- **Do not retry** `400`/`401`/`403`/`404` without changing the request — they
+  are deterministic.
+- On `402 INSUFFICIENT_CREDITS`, surface a top-up prompt rather than retrying.
+- On `401 API_KEY_EXPIRED` or `INVALID_API_KEY`, rotate the key — see
+  [Authentication](/api/authentication).

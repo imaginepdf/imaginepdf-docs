@@ -1,0 +1,84 @@
+---
+title: Assets
+description: Upload images once, reference them by a stable ref, and swap their bytes without rebinding.
+---
+
+import { Callout } from 'nextra/components'
+
+# Assets
+
+An **asset** is an image stored in your workspace — a logo, a signature, a
+product photo. You upload it once, get back a stable **ref**, and use that ref
+wherever an image element needs a source.
+
+## The `assets:<id>` ref
+
+Every asset has an `id` (e.g. `asset_xyz789`) and a `ref`
+(`assets:asset_xyz789`). The **ref** is what you put into a design's image
+elements. The key property: the ref is stable. You can replace the underlying
+bytes later and every design that references the asset picks up the new image —
+no rebinding.
+
+```json
+{
+  "id": "asset_xyz789",
+  "ref": "assets:asset_xyz789",
+  "name": "Company Logo",
+  "mimeType": "image/png",
+  "fileSize": 54321,
+  "dimensions": { "width": 200, "height": 100 },
+  "thumbnailUrl": "https://storage.imaginepdf.com/...",
+  "isPlaceholder": false,
+  "createdAt": "2026-06-08T12:00:00Z"
+}
+```
+
+## Uploading an image
+
+`POST /api/v1/assets` takes `multipart/form-data`:
+
+```bash
+curl -X POST https://api.imaginepdf.com/api/v1/assets \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -F "file=@logo.png" \
+  -F "name=Company Logo"
+```
+
+Accepted types: **PNG, JPEG, WebP, SVG**. Maximum size: **10 MB**.
+
+## Placeholders
+
+When you are assembling a design before the final image exists, create a
+**placeholder** — a labeled gray box that renders in its place:
+
+```bash
+curl -X POST https://api.imaginepdf.com/api/v1/assets/placeholder \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Company Logo", "label": "LOGO", "width": 200, "height": 100 }'
+```
+
+It returns the same shape as a real asset, with `isPlaceholder: true`. Drop its
+`ref` into the design now, and later swap in the real image **in place** (next
+section) — the design needs no change.
+
+## Replacing bytes in place
+
+`PUT /api/v1/assets/:assetId/content` replaces an asset's bytes while keeping
+its `ref`:
+
+```bash
+curl -X PUT https://api.imaginepdf.com/api/v1/assets/asset_xyz789/content \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -F "file=@new-logo.png"
+```
+
+<Callout type="info">
+  This is the placeholder workflow's payoff: design with a placeholder, then
+  `PUT` the real image once it exists. Nothing downstream needs to rebind.
+</Callout>
+
+## Related
+
+- [Assets API](/api/assets) — full endpoint reference, including listing.
+- [Variables](/concepts/variables) — binding images per document.

@@ -1,0 +1,89 @@
+---
+title: API Overview
+description: Base URL, the request lifecycle, and the response envelope shared by every ImaginePDF endpoint.
+---
+
+import { Callout } from 'nextra/components'
+
+# API Overview
+
+The ImaginePDF REST API lets your product create designs, manage assets, and
+generate PDFs without a human in the loop. It is the same backend the visual
+editor and the Claude Code plugin use.
+
+## Base URL
+
+```
+https://api.imaginepdf.com
+```
+
+Every endpoint is mounted under `/api/v1`. For example, generation is
+`POST https://api.imaginepdf.com/api/v1/generate`.
+
+## Authentication
+
+All requests authenticate with a workspace **API key** in the `X-API-Key`
+header:
+
+```
+X-API-Key: pc_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+Keys are workspace-scoped and created from the dashboard. See
+[Authentication](/api/authentication).
+
+## The response envelope
+
+Every response — success or error — uses the same envelope:
+
+```json
+{
+  "status": "success",
+  "data": { /* the result */ },
+  "error": null
+}
+```
+
+On failure:
+
+```json
+{
+  "status": "error",
+  "data": null,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable description."
+  }
+}
+```
+
+- `status` is `"success"` or `"error"`.
+- On success, `data` holds the result and `error` is `null`.
+- On error, `data` is `null` and `error` has a machine-readable `code` and a
+  `message`. See [Errors](/api/errors) for the full code table.
+
+<Callout type="info">
+  Always branch on the HTTP status code and `error.code`, not on the `message`
+  text — messages may change, codes are stable.
+</Callout>
+
+## Content types
+
+- JSON endpoints expect `Content-Type: application/json`.
+- Asset upload endpoints expect `multipart/form-data` (a `file` part).
+
+## Endpoint map
+
+| Area | Endpoints |
+| --- | --- |
+| [Designs](/api/designs) | `POST /designs`, `GET /designs`, `GET /designs/:id`, `PATCH /designs/:id`, `GET /tools` |
+| [Assets](/api/assets) | `POST /assets`, `POST /assets/placeholder`, `PUT /assets/:id/content`, `GET /assets`, `GET /assets/:id` |
+| [Generate](/api/generate) | `POST /generate?design=:id` |
+| [Preview](/api/preview) | `GET /preview?design=:id&page=:n` |
+| [Batch](/api/batch) | `POST /batch/generate?design=:id`, `GET /batch/:jobId/status`, `GET /batch/:jobId/download` |
+
+## Conventions used in this reference
+
+- All paths are relative to `https://api.imaginepdf.com/api/v1`.
+- Examples use a `$IMAGINEPDF_API_KEY` shell variable for the key.
+- Response bodies show the value of `data` unless an error is being illustrated.

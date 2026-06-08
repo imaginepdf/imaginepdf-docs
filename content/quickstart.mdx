@@ -1,0 +1,129 @@
+---
+title: Quickstart
+description: Go from an API key to a generated PDF in a few minutes using the ImaginePDF REST API.
+---
+
+import { Callout } from 'nextra/components'
+
+# Quickstart
+
+This guide takes you from nothing to a downloadable PDF using the REST API. It
+takes about five minutes.
+
+The base URL for all API requests is:
+
+```
+https://api.imaginepdf.com
+```
+
+Every endpoint lives under `/api/v1` and is authenticated with a workspace
+**API key** sent in the `X-API-Key` header.
+
+## 1. Get an API key
+
+1. Sign in at [imaginepdf.com](https://imaginepdf.com).
+2. Go to **Settings → API Keys**.
+3. Create a key. It looks like `pc_live_…` and is shown **only once** — copy it
+   somewhere safe.
+
+API keys are scoped to a single workspace. See
+[Authentication](/api/authentication) for details.
+
+<Callout type="info">
+  API access is a plan feature. If your workspace plan does not include API
+  keys, key creation is disabled. See [Credits & plans](/concepts/credits-and-plans).
+</Callout>
+
+## 2. Create a design
+
+A design is a document layout. The smallest possible design is one page with one
+line of text bound to nothing. Here we create a design with a single page and a
+heading.
+
+```bash
+curl -X POST https://api.imaginepdf.com/api/v1/designs \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Hello Invoice",
+    "tools": [
+      { "tool": "add_page", "input": {} },
+      {
+        "tool": "add_element",
+        "input": {
+          "type": "text",
+          "text": "Invoice for {{customer_name}}",
+          "x": 48, "y": 48, "width": 400, "fontSize": 24
+        }
+      }
+    ]
+  }'
+```
+
+The response carries the new `designId`:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "designId": "design_abc123",
+    "name": "Hello Invoice",
+    "results": [ /* one result per tool */ ]
+  },
+  "error": null
+}
+```
+
+<Callout type="info">
+  The exact element fields (`type`, `x`, `y`, `width`, …) come from the authoring
+  **tool catalog**, validated server-side. Fetch the full catalog any time with
+  `GET /api/v1/tools`. See [Designs](/concepts/designs).
+</Callout>
+
+## 3. Generate a PDF
+
+Render the design, filling the `customer_name` variable. Generation costs **one
+credit**.
+
+```bash
+curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "data": { "customer_name": "Acme Corp" } }'
+```
+
+The response gives you a temporary download URL:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "designId": "design_abc123",
+    "filename": "Hello Invoice.pdf",
+    "downloadUrl": "https://storage.imaginepdf.com/....pdf?signature=...",
+    "expiresIn": 3600,
+    "status": "completed"
+  },
+  "error": null
+}
+```
+
+Open `downloadUrl` in a browser (or `curl -L -o out.pdf "<downloadUrl>"`). The
+link is valid for one hour (`expiresIn` seconds).
+
+## 4. Preview without spending credits
+
+While iterating, render a single page to a PNG instead — this is **free**:
+
+```bash
+curl "https://api.imaginepdf.com/api/v1/preview?design=design_abc123&page=0" \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+## Next steps
+
+- Generate many documents at once with [Batch generation](/api/batch).
+- Add a logo or images with [Assets](/concepts/assets).
+- Understand how `{{variables}}` get their values in
+  [Variables](/concepts/variables).
+- Browse the full [API Reference](/api/overview).
