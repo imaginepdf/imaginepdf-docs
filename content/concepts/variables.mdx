@@ -14,22 +14,33 @@ without forking files.
 
 ## How binding works
 
-When you author text (or other element content), you reference a variable with
-a placeholder, conventionally `{{variable_name}}`:
+Binding is per-element. You author an element with a unique `name` and
+representative sample content, then bind it with a single action — the
+element's **name becomes the variable name**, and the bound field follows the
+element type (text → its content, image → its source, table → its cells):
 
 ```json
-{
-  "tool": "add_element",
-  "input": {
-    "type": "text",
-    "text": "Invoice for {{customer_name}} — total {{amount}}",
-    "x": 48, "y": 48, "width": 400
-  }
-}
+[
+  {
+    "type": "add_element",
+    "args": {
+      "type": "text",
+      "name": "customer_name",
+      "position": { "x": 48, "y": 48 },
+      "data": { "content": "Acme Corp" },
+      "styles": { "fontSize": 24, "bold": true }
+    }
+  },
+  { "type": "bind_variable", "args": { "name": "customer_name" } }
+]
 ```
 
-The design then exposes `customer_name` and `amount` as variables. You can see
-all of a design's variables in the `variables` field of
+At generation time the supplied value **replaces the bound element's content**.
+The `"Acme Corp"` above is sample content — it's what renders when no value is
+supplied, and it's what the text box is measured from, so make samples look
+like real values.
+
+You can see all of a design's variables in the `variables` field of
 `GET /api/v1/designs/:id`.
 
 ## Supplying values at generation time
@@ -42,20 +53,34 @@ curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
-      "customer_name": "Acme Corp",
+      "customer_name": "Globex Inc",
       "amount": "$1,000.00"
     }
   }'
 ```
 
-Each value is substituted into the matching placeholder before the PDF is
-rendered.
-
 <Callout type="info">
-  Variables you do not supply fall back to whatever default the design defines
-  (often the placeholder text itself). Supply every variable you expect to see
-  filled in the output.
+  Variables you do not supply render their design-time sample content. Supply
+  every variable you expect to see filled in the output.
 </Callout>
+
+## Table variables
+
+Bind a table the same way — name it, bind it, and supply a **2-D array of
+strings** (first row = header, if your table has one). The table's rows grow or
+shrink to fit the data; new rows inherit the design's last-row styling.
+
+```json
+{
+  "data": {
+    "line_items": [
+      ["Description", "Qty", "Amount"],
+      ["Design work", "2", "$400.00"],
+      ["Hosting", "1", "$25.00"]
+    ]
+  }
+}
+```
 
 ## Batch: one row, one document
 

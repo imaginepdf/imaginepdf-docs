@@ -87,8 +87,10 @@ Claude Code  →  ImaginePDF plugin  →  ImaginePDF API  /api/v1  (X-API-Key)
 
 The plugin is a thin client over the public API: it issues the same
 `POST /api/v1/designs`, `PATCH /api/v1/designs/:id`, and
-`POST /api/v1/generate` calls documented in the [API Reference](/api/overview).
-Anything the plugin does, you can do directly over HTTP.
+`POST /api/v1/generate` calls documented in the [API Reference](/api/overview),
+with design bodies carrying [`actions`](/api/designs#the-actions) — singular,
+validated authoring operations. Anything the plugin does, you can do directly
+over HTTP.
 
 <Callout type="info">
   Designs created from the plugin live in your workspace just like any other —
