@@ -1,15 +1,17 @@
 ---
 title: Designs API
-description: Create, list, read, and update designs, and fetch the authoring tool catalog.
+description: Create, list, read, and update designs, and fetch the authoring action catalog.
 ---
 
 import { Callout } from 'nextra/components'
 
 # Designs API
 
-Designs are document layouts. You build and edit them by passing **tool calls**;
-see [Designs](/concepts/designs) for the concept. All paths below are relative
-to `https://api.imaginepdf.com/api/v1`.
+Designs are document layouts. You build and edit them by sending **actions** —
+each action is `{ type, args }` and does one thing (add one element, bind one
+variable). Actions apply **sequentially and atomically**; see
+[Designs](/concepts/designs) for the concept. All paths below are relative to
+`https://api.imaginepdf.com/api/v1`.
 
 ---
 
@@ -19,7 +21,9 @@ to `https://api.imaginepdf.com/api/v1`.
 POST /designs
 ```
 
-Creates a design, optionally applying an initial list of tool calls.
+Creates a design, optionally applying an initial list of actions. A new design
+starts with one blank A4 page — you don't need `add_page` for a single-page
+document.
 
 **Body**
 
@@ -27,7 +31,7 @@ Creates a design, optionally applying an initial list of tool calls.
 | ----- | ---- | -------- | ----- |
 | `name` | string | yes | Display name. |
 | `description` | string | no | Optional description. |
-| `tools` | array | no | Tool calls to apply on creation. |
+| `actions` | array | no | Actions to apply on creation, in order. |
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
@@ -36,11 +40,24 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
   -d '{
     "name": "Invoice",
     "description": "Standard invoice template",
-    "tools": [
-      { "tool": "add_page", "input": {} }
+    "actions": [
+      {
+        "type": "add_element",
+        "args": {
+          "type": "text",
+          "name": "title",
+          "position": { "x": 48, "y": 48 },
+          "data": { "content": "INVOICE" },
+          "styles": { "fontSize": 24, "bold": true }
+        }
+      }
     ]
   }'
 ```
+
+Note what is **not** in the payload: no element `id` (ids are server-minted) and
+no `w`/`h` on the text (its box is derived from the content and font). Both come
+back in the result.
 
 **Response** `201 Created`
 
@@ -52,11 +69,26 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
     "name": "Invoice",
     "description": "Standard invoice template",
     "createdAt": "2026-06-08T12:00:00Z",
-    "results": [ /* one result per tool, or null if no tools */ ]
+    "results": [
+      {
+        "type": "add_element",
+        "status": "success",
+        "data": {
+          "id": "text-cfd23",
+          "name": "title",
+          "type": "text",
+          "position": { "x": 48, "y": 48, "w": 112, "h": 36 }
+        }
+      }
+    ]
   },
   "error": null
 }
 ```
+
+`results` carries one entry per action, in order. For `add_element` it echoes
+the minted `id` and the **derived box** — use `position.h` to place the next
+element below this one.
 
 ---
 
@@ -131,7 +163,7 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
     "name": "Invoice",
     "description": "Standard invoice template",
     "config": { /* full design tree from pdftreejs */ },
-    "variables": { "customer_name": { /* schema */ } },
+    "variables": { /* the design's bound variables */ },
     "fileSize": 12345,
     "createdAt": "2026-06-08T12:00:00Z",
     "modifiedAt": "2026-06-08T12:00:00Z"
@@ -148,26 +180,31 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 PATCH /designs/:id
 ```
 
-Rename, re-describe, and/or apply more tool calls. Provide **at least one** of
-`name`, `description`, `tools`.
+Rename, re-describe, and/or apply more actions. Provide **at least one** of
+`name`, `description`, `actions`.
 
 ```bash
 curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "tools": [
+    "actions": [
       {
-        "tool": "add_element",
-        "input": {
-          "type": "text",
-          "text": "Invoice #{{invoice_number}}",
-          "x": 48, "y": 48, "width": 400, "fontSize": 24
+        "type": "update_element",
+        "args": {
+          "name": "title",
+          "data": { "content": "INVOICE #2026-001" }
         }
-      }
+      },
+      { "type": "bind_variable", "args": { "name": "title" } }
     ]
   }'
 ```
+
+Existing elements are addressed by their unique `name` (or by the minted `id` —
+exactly one of the two). The batch is **atomic**: if any action fails, nothing
+is saved and the error names the failing index, e.g.
+`actions[1] (bind_variable) failed: …`.
 
 **Response** `200 OK`
 
@@ -180,7 +217,7 @@ curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
     "description": "Standard invoice template",
     "fileSize": 13002,
     "modifiedAt": "2026-06-08T12:05:00Z",
-    "results": [ /* tool results, if tools were applied */ ]
+    "results": [ /* one result per action, in order */ ]
   },
   "error": null
 }
@@ -188,17 +225,51 @@ curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 
 ---
 
-## Get the tool catalog
+## The actions
+
+| Action | Does |
+| ------ | ---- |
+| `add_element` | Add ONE element (`text`, `image`, `qr`, `barcode`, `shape`, `table`). The id is server-minted; give it a unique `name`. |
+| `update_element` | Merge changes into one element (by `name` or `id`); `newName` renames it. |
+| `remove_element` | Remove one element and any variable bound to it. |
+| `reorder_element` | Change paint order: `to: "front" \| "back" \| "forward" \| "backward" \|` index. |
+| `bind_variable` | Make one element fillable at generation time (args: just `{name}` or `{id}`). |
+| `unbind_variable` | Remove the variable bound to one element. |
+| `add_page` | Append a page (width/height/orientation/background). |
+| `set_page_background` | Set or clear (null) a page background. |
+| `set_document_background` | Set or clear the document-level background. |
+| `set_metadata` | Set author / subject / keywords / creator. |
+
+### Sizing is derived
+
+Clients never set what the system computes. The `position` shape depends on the
+element type:
+
+| Type | `position` | Size comes from |
+| ---- | ---------- | --------------- |
+| `text` | `{ x, y, maxWidth? }` | Content + `fontSize` + `lineHeight`. `maxWidth` (points) pins the box width **exactly** — content wraps inside it; set it for paragraphs and for right/center-aligned text so the aligned edge stays put. Omit it and the box hugs the content. |
+| `table` | `{ x, y }` | The grid: `data.columnWidths` (points, one per column) or `data.width` (total, split equally); row heights follow cell content. |
+| `qr` | `{ x, y, size }` | Always square. |
+| `image`, `barcode`, `shape` | `{ x, y, w, h }` | Explicit box. |
+
+Sending `w`/`h` for a text or table is rejected with an error that names the
+fix (e.g. `position.w is not allowed for text — width is derived; use
+position.maxWidth`). Every `add_element` / `update_element` result echoes the
+final derived box.
+
+---
+
+## Get the action catalog
 
 ```
-GET /tools
+GET /actions
 ```
 
-Returns every authoring tool and its input schema. Use this to discover what
-`tools[].input` should contain.
+Returns every authoring action and its args schema. Use this to discover what
+`actions[].args` should contain.
 
 ```bash
-curl https://api.imaginepdf.com/api/v1/tools \
+curl https://api.imaginepdf.com/api/v1/actions \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
@@ -208,9 +279,9 @@ curl https://api.imaginepdf.com/api/v1/tools \
 {
   "status": "success",
   "data": {
-    "tools": [
-      { "name": "add_page", "description": "...", "input": { /* schema */ } },
-      { "name": "add_element", "description": "...", "input": { /* schema */ } }
+    "actions": [
+      { "name": "add_element", "description": "...", "args": { /* schema */ } },
+      { "name": "bind_variable", "description": "...", "args": { /* schema */ } }
     ]
   },
   "error": null
@@ -218,7 +289,8 @@ curl https://api.imaginepdf.com/api/v1/tools \
 ```
 
 <Callout type="info">
-  Tool inputs are validated server-side by `pdftreejs`. The exact field names
-  and constraints live in the catalog — treat `GET /tools` as the source of
-  truth rather than hard-coding shapes from these examples.
+  Action args are validated server-side by `pdftreejs`, strictly — unknown keys
+  are rejected with a message that says the fix. The catalog at `GET /actions`
+  is the machine-readable source of truth; treat it as authoritative rather
+  than hard-coding shapes from these examples.
 </Callout>

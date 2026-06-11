@@ -36,9 +36,10 @@ API keys are scoped to a single workspace. See
 
 ## 2. Create a design
 
-A design is a document layout. The smallest possible design is one page with one
-line of text bound to nothing. Here we create a design with a single page and a
-heading.
+A design is a document layout. A new design starts with one blank A4 page, so
+the smallest useful create is two **actions**: add a text element and bind it
+as a variable. Each action does one thing; the list applies in order,
+atomically.
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
@@ -46,21 +47,34 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Hello Invoice",
-    "tools": [
-      { "tool": "add_page", "input": {} },
+    "actions": [
       {
-        "tool": "add_element",
-        "input": {
+        "type": "add_element",
+        "args": {
           "type": "text",
-          "text": "Invoice for {{customer_name}}",
-          "x": 48, "y": 48, "width": 400, "fontSize": 24
+          "name": "customer_name",
+          "position": { "x": 48, "y": 48 },
+          "data": { "content": "Acme Corp" },
+          "styles": { "fontSize": 24, "bold": true }
         }
-      }
+      },
+      { "type": "bind_variable", "args": { "name": "customer_name" } }
     ]
   }'
 ```
 
-The response carries the new `designId`:
+Three things to notice:
+
+- **No element id** — ids are server-minted; the element's `name` is how you
+  (and `bind_variable`) refer to it.
+- **No width/height** — the text box is derived from the content and font. The
+  `"Acme Corp"` here is representative *sample content*; size your samples like
+  real values.
+- **Binding is by name** — the element's name becomes the variable name you
+  fill at generation time.
+
+The response carries the new `designId` and one result per action — including
+the minted id and the derived box:
 
 ```json
 {
@@ -68,28 +82,40 @@ The response carries the new `designId`:
   "data": {
     "designId": "design_abc123",
     "name": "Hello Invoice",
-    "results": [ /* one result per tool */ ]
+    "results": [
+      {
+        "type": "add_element",
+        "status": "success",
+        "data": {
+          "id": "text-cfd23",
+          "name": "customer_name",
+          "type": "text",
+          "position": { "x": 48, "y": 48, "w": 142, "h": 36 }
+        }
+      },
+      { "type": "bind_variable", "status": "success", "data": { /* … */ } }
+    ]
   },
   "error": null
 }
 ```
 
 <Callout type="info">
-  The exact element fields (`type`, `x`, `y`, `width`, …) come from the authoring
-  **tool catalog**, validated server-side. Fetch the full catalog any time with
-  `GET /api/v1/tools`. See [Designs](/concepts/designs).
+  The exact args for every action come from the authoring **action catalog**,
+  validated server-side. Fetch it any time with `GET /api/v1/actions`. Text and
+  table sizes are always derived — see [Designs](/concepts/designs).
 </Callout>
 
 ## 3. Generate a PDF
 
-Render the design, filling the `customer_name` variable. Generation costs **one
-credit**.
+Render the design, filling the `customer_name` variable — the supplied value
+replaces the bound element's content. Generation costs **one credit**.
 
 ```bash
 curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "data": { "customer_name": "Acme Corp" } }'
+  -d '{ "data": { "customer_name": "Globex Inc" } }'
 ```
 
 The response gives you a temporary download URL:
@@ -124,6 +150,6 @@ curl "https://api.imaginepdf.com/api/v1/preview?design=design_abc123&page=0" \
 
 - Generate many documents at once with [Batch generation](/api/batch).
 - Add a logo or images with [Assets](/concepts/assets).
-- Understand how `{{variables}}` get their values in
+- Understand how bound variables get their values in
   [Variables](/concepts/variables).
 - Browse the full [API Reference](/api/overview).

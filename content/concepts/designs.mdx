@@ -1,6 +1,6 @@
 ---
 title: Designs
-description: A design is a document layout — pages of positioned elements, authored with a catalog of tools.
+description: A design is a document layout — pages of positioned elements, authored with a catalog of actions.
 ---
 
 import { Callout } from 'nextra/components'
@@ -18,30 +18,44 @@ visual editor, the API, and the renderer all agree on it.
 - Each page holds positioned **elements**.
 - Element types include **text**, **tables**, **images**, **QR codes**,
   **barcodes**, and shapes.
-- Elements are placed with explicit coordinates and sizes.
+- You place elements with explicit coordinates. **Text and table sizes are
+  derived** — a text box is measured from its content and font, a table from
+  its grid — so a client can never produce a clipped or sprawling box.
 
-You never hand-write the tree. You build it by issuing **tool calls** — small,
-validated operations like `add_page` and `add_element` — and ImaginePDF applies
-them to the design.
+You never hand-write the tree. You build it by issuing **actions** — small,
+validated operations like `add_element` and `bind_variable` — and ImaginePDF
+applies them to the design.
 
-## Authoring with tools
+## Authoring with actions
 
-Every change to a design's structure is a tool call of the form:
+Every change to a design's structure is an action of the form:
 
 ```json
-{ "tool": "add_element", "input": { /* fields for this tool */ } }
+{ "type": "add_element", "args": { /* args for this action */ } }
 ```
 
-You can pass tool calls when you create a design or when you update it:
+The core model is `tree + action → tree`: each action does **one** thing (add
+one element, bind one variable), and a request carries an ordered list of them.
+They apply sequentially and **atomically** — if any action fails, nothing is
+saved and the error names the failing index.
 
 - `POST /api/v1/designs` — create a design, optionally with an initial list of
-  tools.
-- `PATCH /api/v1/designs/:id` — apply more tools (and/or rename / describe).
+  actions.
+- `PATCH /api/v1/designs/:id` — apply more actions (and/or rename / describe).
 
-The full set of available tools and their input schemas comes from the catalog:
+Two conventions to know:
+
+- **Ids are server-minted.** `add_element` does not accept an `id`; give each
+  element a unique, meaningful `name` (`"title"`, `"line_items"`) and address it
+  by that name in later actions. The minted id (`text-cfd23`) comes back in the
+  result.
+- **Results echo the derived box.** Each `add_element` result includes the
+  element's final `{ x, y, w, h }` — use it to place the next element below.
+
+The full set of available actions and their args schemas comes from the catalog:
 
 ```bash
-curl https://api.imaginepdf.com/api/v1/tools \
+curl https://api.imaginepdf.com/api/v1/actions \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
@@ -49,9 +63,9 @@ curl https://api.imaginepdf.com/api/v1/tools \
 {
   "status": "success",
   "data": {
-    "tools": [
-      { "name": "add_page", "description": "...", "input": { /* schema */ } },
-      { "name": "add_element", "description": "...", "input": { /* schema */ } }
+    "actions": [
+      { "name": "add_element", "description": "...", "args": { /* schema */ } },
+      { "name": "bind_variable", "description": "...", "args": { /* schema */ } }
     ]
   },
   "error": null
@@ -59,9 +73,11 @@ curl https://api.imaginepdf.com/api/v1/tools \
 ```
 
 <Callout type="info">
-  Tool inputs are validated **server-side** by `pdftreejs`. The API passes your
-  tool calls through as-is, so always shape `input` to match the catalog schema
-  from `GET /api/v1/tools`.
+  Actions are validated **server-side** by `pdftreejs`, strictly: unknown keys
+  are rejected with a message that says the fix — e.g. sending `position.w` for
+  a text element returns `position.w is not allowed for text — width is
+  derived; use position.maxWidth`. See the
+  [Designs API](/api/designs#the-actions) for the per-type position shapes.
 </Callout>
 
 ## Reading a design back
@@ -76,7 +92,7 @@ tree) and its `variables` (the named fields it exposes):
     "designId": "design_abc123",
     "name": "Invoice",
     "config": { /* the full design tree */ },
-    "variables": { "customer_name": { /* schema */ } },
+    "variables": { /* the design's bound variables */ },
     "fileSize": 12345,
     "createdAt": "2026-06-08T12:00:00Z",
     "modifiedAt": "2026-06-08T12:00:00Z"
