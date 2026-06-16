@@ -36,17 +36,45 @@ API keys are scoped to a single workspace. See
 
 ## 2. Create a design
 
-A design is a document layout. A new design starts with one blank A4 page, so
-the smallest useful create is two **actions**: add a text element and bind it
-as a variable. Each action does one thing; the list applies in order,
-atomically.
+A design is a document layout. Creating it and authoring it are **two steps**:
+first create the design to get a `designId`, then add content to it. Create
+allocates the design only — a `name` and an optional `description` — and starts
+with one blank A4 page. (It does not take `actions`; sending them returns a
+`400`.)
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
+  -d '{ "name": "Hello Invoice" }'
+```
+
+The response carries the new `designId` — you'll author against it next:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "designId": "design_abc123",
     "name": "Hello Invoice",
+    "createdAt": "2026-06-08T12:00:00Z"
+  },
+  "error": null
+}
+```
+
+## 3. Add content with actions
+
+Build the design by sending an ordered batch of **actions** to
+`PATCH /api/v1/designs/:id`. Each action does one thing; the list applies in
+order, atomically. The smallest useful batch is two actions: add a text element
+and bind it as a variable.
+
+```bash
+curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
     "actions": [
       {
         "type": "add_element",
@@ -55,7 +83,7 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
           "name": "customer_name",
           "position": { "x": 48, "y": 48 },
           "data": { "content": "Acme Corp" },
-          "styles": { "fontSize": 24, "bold": true }
+          "styles": { "fontSize": 24, "fontWeight": 700 }
         }
       },
       { "type": "bind_variable", "args": { "name": "customer_name" } }
@@ -73,8 +101,8 @@ Three things to notice:
 - **Binding is by name** — the element's name becomes the variable name you
   fill at generation time.
 
-The response carries the new `designId` and one result per action — including
-the minted id and the derived box:
+The response carries one result per action — including the minted id and the
+derived box:
 
 ```json
 {
@@ -100,13 +128,17 @@ the minted id and the derived box:
 }
 ```
 
+The batch is **atomic** — if any action fails, nothing is saved and the error
+names the failing index. Just fix it and re-send the `PATCH` against the same
+`designId`; you never re-create the design.
+
 <Callout type="info">
   The exact args for every action come from the authoring **action catalog**,
   validated server-side. Fetch it any time with `GET /api/v1/actions`. Text and
   table sizes are always derived — see [Designs](/concepts/designs).
 </Callout>
 
-## 3. Generate a PDF
+## 4. Generate a PDF
 
 Render the design, filling the `customer_name` variable — the supplied value
 replaces the bound element's content. Generation costs **one credit**.
@@ -137,7 +169,7 @@ The response gives you a temporary download URL:
 Open `downloadUrl` in a browser (or `curl -L -o out.pdf "<downloadUrl>"`). The
 link is valid for one hour (`expiresIn` seconds).
 
-## 4. Preview without spending credits
+## 5. Preview without spending credits
 
 While iterating, render a single page to a PNG instead — this is **free**:
 

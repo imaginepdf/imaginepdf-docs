@@ -21,9 +21,11 @@ variable). Actions apply **sequentially and atomically**; see
 POST /designs
 ```
 
-Creates a design, optionally applying an initial list of actions. A new design
-starts with one blank A4 page — you don't need `add_page` for a single-page
-document.
+Creates a design — a `name` and an optional `description`. **Create allocates
+the design only; it does not author content.** A new design starts with one
+blank A4 page; you build it by sending actions to
+[`PATCH /designs/:id`](#update-a-design). Posting `actions` to this endpoint is
+**rejected with a `400`** — creation and authoring are separate steps.
 
 **Body**
 
@@ -31,7 +33,6 @@ document.
 | ----- | ---- | -------- | ----- |
 | `name` | string | yes | Display name. |
 | `description` | string | no | Optional description. |
-| `actions` | array | no | Actions to apply on creation, in order. |
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
@@ -39,25 +40,9 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Invoice",
-    "description": "Standard invoice template",
-    "actions": [
-      {
-        "type": "add_element",
-        "args": {
-          "type": "text",
-          "name": "title",
-          "position": { "x": 48, "y": 48 },
-          "data": { "content": "INVOICE" },
-          "styles": { "fontSize": 24, "bold": true }
-        }
-      }
-    ]
+    "description": "Standard invoice template"
   }'
 ```
-
-Note what is **not** in the payload: no element `id` (ids are server-minted) and
-no `w`/`h` on the text (its box is derived from the content and font). Both come
-back in the result.
 
 **Response** `201 Created`
 
@@ -68,27 +53,16 @@ back in the result.
     "designId": "design_abc123",
     "name": "Invoice",
     "description": "Standard invoice template",
-    "createdAt": "2026-06-08T12:00:00Z",
-    "results": [
-      {
-        "type": "add_element",
-        "status": "success",
-        "data": {
-          "id": "text-cfd23",
-          "name": "title",
-          "type": "text",
-          "position": { "x": 48, "y": 48, "w": 112, "h": 36 }
-        }
-      }
-    ]
+    "createdAt": "2026-06-08T12:00:00Z"
   },
   "error": null
 }
 ```
 
-`results` carries one entry per action, in order. For `add_element` it echoes
-the minted `id` and the **derived box** — use `position.h` to place the next
-element below this one.
+Take the `designId` and author the design with
+[`PATCH /designs/:id`](#update-a-design): it applies your `actions` batch and
+returns one `result` per action — each echoing the minted `id` and the
+**derived box** (no element `id` or `w`/`h` is ever sent; both come back).
 
 ---
 
@@ -180,8 +154,9 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 PATCH /designs/:id
 ```
 
-Rename, re-describe, and/or apply more actions. Provide **at least one** of
-`name`, `description`, `actions`.
+Rename, re-describe, and/or apply authoring actions. This is the **only**
+endpoint that applies actions — including the first batch on a freshly-created
+design. Provide **at least one** of `name`, `description`, `actions`.
 
 ```bash
 curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \

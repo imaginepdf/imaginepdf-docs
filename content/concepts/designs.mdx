@@ -39,9 +39,10 @@ one element, bind one variable), and a request carries an ordered list of them.
 They apply sequentially and **atomically** — if any action fails, nothing is
 saved and the error names the failing index.
 
-- `POST /api/v1/designs` — create a design, optionally with an initial list of
-  actions.
-- `PATCH /api/v1/designs/:id` — apply more actions (and/or rename / describe).
+- `POST /api/v1/designs` — create a design (name + optional description). This
+  allocates the design and returns a `designId`; it does **not** take actions.
+- `PATCH /api/v1/designs/:id` — apply actions (and/or rename / describe). This is
+  where authoring happens, including the first batch on a new design.
 
 Two conventions to know:
 
