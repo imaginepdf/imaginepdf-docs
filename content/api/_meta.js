@@ -2,7 +2,7 @@ export default {
   overview: 'Overview',
   authentication: 'Authentication',
   designs: 'Designs',
-  assets: 'Assets',
+  uploads: 'Uploads',
   generate: 'Generate a PDF',
   preview: 'Preview',
   batch: 'Batch generation',

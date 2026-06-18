@@ -8,22 +8,27 @@ import { Callout } from 'nextra/components'
 # Preview
 
 ```
-GET /preview?design=:designId&page=:n
+GET /designs/:designId/preview?page=:n
 ```
 
 Renders one page of a design to a PNG and returns a temporary URL. **Free** — no
 credits are consumed. Use it to check a layout while you iterate, before
 spending a credit on a full PDF.
 
+## Path parameters
+
+| Param | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `designId` | string | yes | The design id. |
+
 ## Query parameters
 
 | Param | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
-| `design` | string | yes | The design id. |
 | `page` | number | no | Zero-based page index. Default `0`. |
 
 ```bash
-curl "https://api.imaginepdf.com/api/v1/preview?design=design_abc123&page=0" \
+curl "https://api.imaginepdf.com/api/v1/designs/design_abc123/preview?page=0" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
@@ -47,6 +52,6 @@ curl "https://api.imaginepdf.com/api/v1/preview?design=design_abc123&page=0" \
 
 <Callout type="info">
   Previews never bind variable values — they render the design as authored
-  (placeholders show their default text). To see filled output, generate a PDF
-  with [`POST /generate`](/api/generate).
+  (each element shows its design-time content). To see filled output, generate a
+  PDF with [`POST /designs/:id/generate`](/api/generate).
 </Callout>

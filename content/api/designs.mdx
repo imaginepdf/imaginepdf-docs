@@ -24,8 +24,8 @@ POST /designs
 Creates a design — a `name` and an optional `description`. **Create allocates
 the design only; it does not author content.** A new design starts with one
 blank A4 page; you build it by sending actions to
-[`PATCH /designs/:id`](#update-a-design). Posting `actions` to this endpoint is
-**rejected with a `400`** — creation and authoring are separate steps.
+[`PATCH /designs/:id/tree`](#update-the-tree). Posting `actions` to this endpoint
+is **rejected with a `400`** — creation and authoring are separate steps.
 
 **Body**
 
@@ -60,7 +60,7 @@ curl -X POST https://api.imaginepdf.com/api/v1/designs \
 ```
 
 Take the `designId` and author the design with
-[`PATCH /designs/:id`](#update-a-design): it applies your `actions` batch and
+[`PATCH /designs/:id/tree`](#update-the-tree): it applies your `actions` batch and
 returns one `result` per action — each echoing the minted `id` and the
 **derived box** (no element `id` or `w`/`h` is ever sent; both come back).
 
@@ -113,14 +113,15 @@ When `nextCursor` is non-null, pass it back as `cursor` to fetch the next page.
 
 ---
 
-## Get a design
+## Get a design (metadata)
 
 ```
 GET /designs/:id
 ```
 
-Returns the full design, including its `config` (the design tree) and
-`variables`.
+Returns the design's **metadata** only — not the tree. Cheap: read names and
+timestamps without pulling the whole layout. Fetch the layout separately with
+[`GET /designs/:id/tree`](#get-the-design-tree).
 
 ```bash
 curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
@@ -136,8 +137,6 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
     "designId": "design_abc123",
     "name": "Invoice",
     "description": "Standard invoice template",
-    "config": { /* full design tree from pdftreejs */ },
-    "variables": { /* the design's bound variables */ },
     "fileSize": 12345,
     "createdAt": "2026-06-08T12:00:00Z",
     "modifiedAt": "2026-06-08T12:00:00Z"
@@ -148,18 +147,65 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 
 ---
 
-## Update a design
+## Get the design tree
+
+```
+GET /designs/:id/tree
+```
+
+Returns the full design tree (the `pdftreejs` `PDFTree`) as **raw JSON**. This is
+the one endpoint that does **not** use the `{status, data, error}` envelope — the
+response body IS the tree (errors still come back enveloped). Fetch it to inspect
+the layout before sending a tree patch.
+
+```bash
+curl https://api.imaginepdf.com/api/v1/designs/design_abc123/tree \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+**Response** `200 OK` (raw — no envelope)
+
+```json
+{
+  "metadata": { "schemaVersion": "v1" },
+  "pages": [ /* ... */ ],
+  "nodes": { /* ... */ }
+}
+```
+
+---
+
+## Update a design (metadata)
 
 ```
 PATCH /designs/:id
 ```
 
-Rename, re-describe, and/or apply authoring actions. This is the **only**
-endpoint that applies actions — including the first batch on a freshly-created
-design. Provide **at least one** of `name`, `description`, `actions`.
+Rename / re-describe. **Metadata only — it never touches the tree.** Provide
+**at least one** of `name`, `description`.
 
 ```bash
 curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Invoice (2026)", "description": "Updated template" }'
+```
+
+**Response** `200 OK` — `{ designId, name, description, fileSize, modifiedAt }`.
+
+---
+
+## Update the tree
+
+```
+PATCH /designs/:id/tree
+```
+
+Apply an ordered batch of authoring **actions** — including the first batch on a
+freshly-created design. Body: `{ "actions": [ … ] }` (1–500 actions).
+
+```bash
+curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123/tree \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -188,8 +234,6 @@ is saved and the error names the failing index, e.g.
   "status": "success",
   "data": {
     "designId": "design_abc123",
-    "name": "Invoice",
-    "description": "Standard invoice template",
     "fileSize": 13002,
     "modifiedAt": "2026-06-08T12:05:00Z",
     "results": [ /* one result per action, in order */ ]

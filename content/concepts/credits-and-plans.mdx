@@ -44,9 +44,9 @@ does not, the API responds with HTTP **403** and `INSUFFICIENT_PERMISSIONS`.
 | Feature         | Gates                                   | Without it |
 | --------------- | --------------------------------------- | ---------- |
 | `useApiKeys`    | Creating and using API keys at all      | API-key routes return 403 |
-| `batchGenerate` | `POST /api/v1/batch/generate` and batch | Batch endpoints return 403 |
+| `batchGenerate` | `POST /api/v1/designs/:id/batch` and batch | Batch endpoints return 403 |
 
-Single-PDF generation, previews, designs, and assets are available on any plan
+Single-PDF generation, previews, designs, and uploads are available on any plan
 that includes API access (`useApiKeys`).
 
 ## Related

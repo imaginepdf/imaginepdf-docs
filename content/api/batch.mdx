@@ -25,23 +25,23 @@ All paths are relative to `https://api.imaginepdf.com/api/v1`.
 ## Submit a batch
 
 ```
-POST /batch/generate?design=:designId
+POST /designs/:designId/batch
 ```
 
-**Query parameters**
+**Path parameters**
 
 | Param | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
-| `design` | string | yes | The design id to render for every row. |
+| `designId` | string | yes | The design id to render for every row. |
 
 **Body**
 
 | Field | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
-| `rows` | array | yes | Each element is a `data` object (variable → value). At least 1 row. |
+| `rows` | array | yes | Each element is a `data` object (variable → value). 1–100 rows. |
 
 ```bash
-curl -X POST "https://api.imaginepdf.com/api/v1/batch/generate?design=design_abc123" \
+curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/batch" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -67,18 +67,18 @@ curl -X POST "https://api.imaginepdf.com/api/v1/batch/generate?design=design_abc
 }
 ```
 
-The maximum number of rows per batch depends on your subscription plan.
+Up to **100 rows** per batch.
 
 ---
 
 ## Poll job status
 
 ```
-GET /batch/:jobId/status
+GET /batches/:jobId
 ```
 
 ```bash
-curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/status \
+curl https://api.imaginepdf.com/api/v1/batches/job_abc123xyz \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
@@ -108,13 +108,13 @@ reaches `completed`.
 ## Download the result
 
 ```
-GET /batch/:jobId/download
+GET /batches/:jobId/download
 ```
 
 Returns a presigned URL to the output ZIP (one PDF per successful row).
 
 ```bash
-curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/download \
+curl https://api.imaginepdf.com/api/v1/batches/job_abc123xyz/download \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
@@ -124,7 +124,7 @@ curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/download \
 {
   "status": "success",
   "data": {
-    "url": "https://storage.imaginepdf.com/batch_output.zip?signature=...",
+    "downloadUrl": "https://storage.imaginepdf.com/batch_output.zip?signature=...",
     "expiresIn": 3600
   },
   "error": null
@@ -132,11 +132,11 @@ curl https://api.imaginepdf.com/api/v1/batch/job_abc123xyz/download \
 ```
 
 ```bash
-curl -L -o batch.zip "<url>"
+curl -L -o batch.zip "<downloadUrl>"
 ```
 
 ## A typical loop
 
-1. `POST /batch/generate` → get `jobId`.
-2. `GET /batch/:jobId/status` every few seconds until `status` is `completed`.
-3. `GET /batch/:jobId/download` → fetch the ZIP within `expiresIn` seconds.
+1. `POST /designs/:id/batch` → get `jobId`.
+2. `GET /batches/:jobId` every few seconds until `status` is `completed`.
+3. `GET /batches/:jobId/download` → fetch the ZIP within `expiresIn` seconds.

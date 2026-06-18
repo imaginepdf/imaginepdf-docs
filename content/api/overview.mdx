@@ -18,7 +18,7 @@ https://api.imaginepdf.com
 ```
 
 Every endpoint is mounted under `/api/v1`. For example, generation is
-`POST https://api.imaginepdf.com/api/v1/generate`.
+`POST https://api.imaginepdf.com/api/v1/designs/:id/generate`.
 
 ## Authentication
 
@@ -70,17 +70,17 @@ On failure:
 ## Content types
 
 - JSON endpoints expect `Content-Type: application/json`.
-- Asset upload endpoints expect `multipart/form-data` (a `file` part).
+- The image upload endpoint expects `multipart/form-data` (a `file` part, ≤ 1 MB).
 
 ## Endpoint map
 
 | Area | Endpoints |
 | --- | --- |
-| [Designs](/api/designs) | `POST /designs`, `GET /designs`, `GET /designs/:id`, `PATCH /designs/:id`, `GET /actions` |
-| [Assets](/api/assets) | `POST /assets`, `POST /assets/placeholder`, `PUT /assets/:id/content`, `GET /assets`, `GET /assets/:id` |
-| [Generate](/api/generate) | `POST /generate?design=:id` |
-| [Preview](/api/preview) | `GET /preview?design=:id&page=:n` |
-| [Batch](/api/batch) | `POST /batch/generate?design=:id`, `GET /batch/:jobId/status`, `GET /batch/:jobId/download` |
+| [Designs](/api/designs) | `POST /designs`, `GET /designs`, `GET /designs/:id`, `GET /designs/:id/tree`, `PATCH /designs/:id`, `PATCH /designs/:id/tree`, `GET /actions`, `GET /fonts` |
+| [Uploads](/api/uploads) | `POST /uploads` |
+| [Generate](/api/generate) | `POST /designs/:id/generate` |
+| [Preview](/api/preview) | `GET /designs/:id/preview?page=:n` |
+| [Batch](/api/batch) | `POST /designs/:id/batch`, `GET /batches/:jobId`, `GET /batches/:jobId/download` |
 
 ## Conventions used in this reference
 

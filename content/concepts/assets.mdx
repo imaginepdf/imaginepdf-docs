@@ -1,84 +1,66 @@
 ---
-title: Assets
-description: Upload images once, reference them by a stable ref, and swap their bytes without rebinding.
+title: "Assets & uploads"
+description: "How images are referenced in a design — the assets library vs uploads (programmatic) storage."
 ---
 
 import { Callout } from 'nextra/components'
 
-# Assets
+# Assets & uploads
 
-An **asset** is an image stored in your workspace — a logo, a signature, a
-product photo. You upload it once, get back a stable **ref**, and use that ref
-wherever an image element needs a source.
+Every image in a design is referenced by a stable **ref** in its `data.src` (or a
+page/document `backgroundImage`). There are two ref schemes, by origin:
 
-## The `assets:<id>` ref
+- **`assets:<id>`** — the user's **editor asset library** (images they upload in
+  the app). Curated and browsable in the editor.
+- **`uploads:<id>`** — **programmatic / API images** (what you upload via the API,
+  plus images authored by the Claude plugin) and inline images the server stored
+  for you. Deliberately kept OUT of the user's library so automated runs don't
+  clutter it.
 
-Every asset has an `id` (e.g. `asset_xyz789`) and a `ref`
-(`assets:asset_xyz789`). The **ref** is what you put into a design's image
-elements. The key property: the ref is stable. You can replace the underlying
-bytes later and every design that references the asset picks up the new image —
-no rebinding.
+Both resolve identically when a PDF is rendered. Over the API you create
+`uploads:` images; you reference existing `assets:` images by ref if you already
+have one.
 
-```json
-{
-  "id": "asset_xyz789",
-  "ref": "assets:asset_xyz789",
-  "name": "Company Logo",
-  "mimeType": "image/png",
-  "fileSize": 54321,
-  "dimensions": { "width": 200, "height": 100 },
-  "thumbnailUrl": "https://storage.imaginepdf.com/...",
-  "isPlaceholder": false,
-  "createdAt": "2026-06-08T12:00:00Z"
-}
-```
+## Uploading an image (API)
 
-## Uploading an image
-
-`POST /api/v1/assets` takes `multipart/form-data`:
+`POST /api/v1/uploads` takes `multipart/form-data` and returns an `uploads:<id>`:
 
 ```bash
-curl -X POST https://api.imaginepdf.com/api/v1/assets \
+curl -X POST https://api.imaginepdf.com/api/v1/uploads \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -F "file=@logo.png" \
   -F "name=Company Logo"
 ```
 
-Accepted types: **PNG, JPEG, WebP, SVG**. Maximum size: **10 MB**.
-
-## Placeholders
-
-When you are assembling a design before the final image exists, create a
-**placeholder** — a labeled gray box that renders in its place:
-
-```bash
-curl -X POST https://api.imaginepdf.com/api/v1/assets/placeholder \
-  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "Company Logo", "label": "LOGO", "width": 200, "height": 100 }'
+```json
+{
+  "uploadId": "upl_xyz789",
+  "ref": "uploads:upl_xyz789",
+  "name": "Company Logo",
+  "mimeType": "image/png",
+  "fileSize": 54321,
+  "dimensions": { "width": 200, "height": 100 },
+  "thumbnailUrl": "https://storage.imaginepdf.com/...",
+  "createdAt": "2026-06-08T12:00:00Z"
+}
 ```
 
-It returns the same shape as a real asset, with `isPlaceholder: true`. Drop its
-`ref` into the design now, and later swap in the real image **in place** (next
-section) — the design needs no change.
+Accepted types: **PNG, JPEG, WebP, SVG**. Maximum size: **1 MB**. SVGs are
+rasterized to PNG on upload (and a blank SVG is rejected), so artwork renders
+identically on the canvas and in the PDF.
 
-## Replacing bytes in place
-
-`PUT /api/v1/assets/:assetId/content` replaces an asset's bytes while keeping
-its `ref`:
-
-```bash
-curl -X PUT https://api.imaginepdf.com/api/v1/assets/asset_xyz789/content \
-  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
-  -F "file=@new-logo.png"
-```
+Drop the returned `ref` into an image element's `data.src`. A small inline
+`data:image/...;base64,…` `src` works too — the server uploads it to `uploads`
+for you so the design tree never carries raw image bytes.
 
 <Callout type="info">
-  This is the placeholder workflow's payoff: design with a placeholder, then
-  `PUT` the real image once it exists. Nothing downstream needs to rebind.
+  Need to change an image later? Upload the new one and point the element's
+  `data.src` at its new `ref` with an `update_element` action. There's no
+  in-place "replace bytes" and no placeholder box — author a real image up front
+  (an SVG is ideal: crisp at any size, never a gray placeholder).
 </Callout>
 
 ## Related
 
-- [Assets API](/api/assets) — full endpoint reference, including listing.
+- [Uploads API](/api/uploads) — the upload endpoint reference.
 - [Variables](/concepts/variables) — binding images per document.

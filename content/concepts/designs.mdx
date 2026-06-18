@@ -83,8 +83,8 @@ curl https://api.imaginepdf.com/api/v1/actions \
 
 ## Reading a design back
 
-`GET /api/v1/designs/:id` returns the full design including its `config` (the
-tree) and its `variables` (the named fields it exposes):
+Reads are split by cost. `GET /api/v1/designs/:id` returns just the
+**metadata** (enveloped):
 
 ```json
 {
@@ -92,8 +92,7 @@ tree) and its `variables` (the named fields it exposes):
   "data": {
     "designId": "design_abc123",
     "name": "Invoice",
-    "config": { /* the full design tree */ },
-    "variables": { /* the design's bound variables */ },
+    "description": "Standard invoice template",
     "fileSize": 12345,
     "createdAt": "2026-06-08T12:00:00Z",
     "modifiedAt": "2026-06-08T12:00:00Z"
@@ -101,6 +100,10 @@ tree) and its `variables` (the named fields it exposes):
   "error": null
 }
 ```
+
+To read the layout itself, `GET /api/v1/designs/:id/tree` returns the full design
+tree as **raw JSON** (this endpoint is not enveloped — the body IS the tree; its
+`variables` are part of it). See the [Designs API](/api/designs).
 
 ## From design to PDF
 

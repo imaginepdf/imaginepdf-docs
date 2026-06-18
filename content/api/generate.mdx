@@ -8,17 +8,17 @@ import { Callout } from 'nextra/components'
 # Generate a PDF
 
 ```
-POST /generate?design=:designId
+POST /designs/:designId/generate
 ```
 
 Renders one PDF from a design, substituting variable values, and returns a
 temporary presigned download URL. Costs **1 credit**.
 
-## Query parameters
+## Path parameters
 
 | Param | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
-| `design` | string | yes | The design id to render. |
+| `designId` | string | yes | The design id to render. |
 
 ## Body
 
@@ -27,7 +27,7 @@ temporary presigned download URL. Costs **1 credit**.
 | `data` | object | no | Variable name → value. Omit for a design with no variables. |
 
 ```bash
-curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
+curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -76,7 +76,7 @@ curl -L -o invoice.pdf "<downloadUrl>"
 | ---- | ------------ | ------- |
 | 402 | `INSUFFICIENT_CREDITS` | Workspace is out of credits. |
 | 404 | `DESIGN_NOT_FOUND` | No design with that id in the workspace. |
-| 400 | `VALIDATION_ERROR` | Missing `design` query param or malformed body. |
+| 400 | `VALIDATION_ERROR` | Malformed body. |
 
 See [Errors](/api/errors) for the full table, and
 [Credits & plans](/concepts/credits-and-plans) for credit behavior.

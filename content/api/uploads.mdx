@@ -1,0 +1,81 @@
+---
+title: Uploads API
+description: Upload an image (≤1 MB) and get an uploads:<id> ref to use in a design.
+---
+
+import { Callout } from 'nextra/components'
+
+# Uploads API
+
+Upload an image and get back a stable `uploads:<id>` ref to drop into a design's
+image elements (or a page/document background). Uploads are programmatic image
+storage — deliberately kept out of the user's editor asset library; see
+[Assets](/concepts/assets) for the distinction. All paths are relative to
+`https://api.imaginepdf.com/api/v1`.
+
+**Accepted image types:** PNG, JPEG, WebP, SVG. **Max size:** 1 MB. SVGs are
+rasterized to PNG on upload (the original is kept) and a blank result is rejected.
+
+---
+
+## Upload an image
+
+```
+POST /uploads
+```
+
+Multipart upload of an image.
+
+**Form fields**
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `file` | file | yes | The image bytes (≤ 1 MB). |
+| `name` | string | no | Display name; defaults from the filename. |
+
+```bash
+curl -X POST https://api.imaginepdf.com/api/v1/uploads \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY" \
+  -F "file=@logo.png" \
+  -F "name=Company Logo"
+```
+
+Authored **SVG** works the same way — write your markup to a `.svg` file and
+`-F "file=@logo.svg"` (or, from the plugin, `design.cjs upload '{"svg":"<svg …>"}'`).
+
+**Response** `201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "uploadId": "upl_xyz789",
+    "ref": "uploads:upl_xyz789",
+    "name": "Company Logo",
+    "mimeType": "image/png",
+    "fileSize": 54321,
+    "dimensions": { "width": 200, "height": 100 },
+    "thumbnailUrl": "https://storage.imaginepdf.com/...",
+    "createdAt": "2026-06-08T12:00:00Z"
+  },
+  "error": null
+}
+```
+
+Use the returned `ref` (`uploads:upl_xyz789`) as an image element's `data.src`
+(or a page/document `backgroundImage`).
+
+<Callout type="info">
+  Need a different image later? Upload the new one and point the element's
+  `data.src` at its new `ref` with an `update_element` action. There is no
+  in-place replace and no placeholder endpoint — author a real image up front
+  (an SVG is ideal: crisp at any size and it never renders as a gray box).
+</Callout>
+
+## Errors
+
+| HTTP | `error.code` | Meaning |
+| ---- | ------------ | ------- |
+| 400 | `VALIDATION_ERROR` | Missing `file`, unsupported type, blank SVG, or file **> 1 MB**. |
+
+See [Errors](/api/errors) for the full table.

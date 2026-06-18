@@ -48,7 +48,7 @@ You can see all of a design's variables in the `variables` field of
 When you generate, pass a `data` object whose keys are the variable names:
 
 ```bash
-curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
+curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

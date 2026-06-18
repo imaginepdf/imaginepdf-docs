@@ -144,7 +144,7 @@ Render the design, filling the `customer_name` variable — the supplied value
 replaces the bound element's content. Generation costs **one credit**.
 
 ```bash
-curl -X POST "https://api.imaginepdf.com/api/v1/generate?design=design_abc123" \
+curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "data": { "customer_name": "Globex Inc" } }'
@@ -174,7 +174,7 @@ link is valid for one hour (`expiresIn` seconds).
 While iterating, render a single page to a PNG instead — this is **free**:
 
 ```bash
-curl "https://api.imaginepdf.com/api/v1/preview?design=design_abc123&page=0" \
+curl "https://api.imaginepdf.com/api/v1/designs/design_abc123/preview?page=0" \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
