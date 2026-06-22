@@ -140,3 +140,6 @@ curl -L -o batch.zip "<downloadUrl>"
 1. `POST /designs/:id/batch` → get `jobId`.
 2. `GET /batches/:jobId` every few seconds until `status` is `completed`.
 3. `GET /batches/:jobId/download` → fetch the ZIP within `expiresIn` seconds.
+
+For a complete CSV parser, row mapping, polling deadline, and restart-safe Node.js
+workflow, see [Bulk PDF generation from CSV](https://imaginepdf.com/blog/bulk-pdf-generation-csv-nodejs).

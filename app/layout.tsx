@@ -39,6 +39,9 @@ const footer = (
       © {new Date().getFullYear()} ImaginePDF ·{' '}
       <a href="https://imaginepdf.com" style={{ textDecoration: 'underline' }}>
         imaginepdf.com
+      </a>{' '}·{' '}
+      <a href="https://imaginepdf.com/blog" style={{ textDecoration: 'underline' }}>
+        Developer blog
       </a>
     </span>
   </Footer>
