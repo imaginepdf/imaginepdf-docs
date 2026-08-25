@@ -40,8 +40,10 @@ The `"Acme Corp"` above is sample content — it's what renders when no value is
 supplied, and it's what the text box is measured from, so make samples look
 like real values.
 
-You can see all of a design's variables in the `variables` field of
-`GET /api/v1/designs/:id`.
+To see a design's variables, read the tree: `GET /api/v1/designs/:id/tree`
+returns the whole layout as raw JSON, and the variable store is the `variables`
+key on it. `GET /api/v1/designs/:id` deliberately does **not** carry them — it
+is the cheap metadata read (name, description, size, timestamps).
 
 ## Supplying values at generation time
 
@@ -101,8 +103,13 @@ See [Batch generation](/api/batch).
 ## Images as variables
 
 Image elements can be bound too — to swap a logo or a photo per document. The
-value you supply is an **asset reference** (`assets:<id>`) rather than a string.
-See [Assets](/concepts/assets).
+value you supply is an **image ref**, not a string or raw bytes: either
+`uploads:<id>` (what [`POST /uploads`](/api/uploads) returns, and the usual
+answer over the API) or `assets:<id>` (an image already in the workspace's
+editor library). Both resolve identically at render time.
+
+Inline `data:` values are **dropped** before rendering rather than embedded —
+upload the image first, then pass its ref. See [Assets](/concepts/assets).
 
 ## Related
 

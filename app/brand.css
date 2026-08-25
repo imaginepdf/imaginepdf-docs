@@ -1,0 +1,526 @@
+/* ImaginePDF docs theme.
+ *
+ * Nextra 4 ships a complete stylesheet; this file layers the BRAND on top of
+ * it rather than replacing it. Three jobs, in order:
+ *
+ *   1. Declare the palette (mirrors ../../assets/brand/tokens.css, the
+ *      canonical source — change it there first, then here).
+ *   2. Re-point Nextra's own knobs at that palette: `--nextra-primary-*` for
+ *      every accent, `--nextra-bg` for the page ground, and the `--x-color-*`
+ *      ramp the theme uses for text, borders and wells. Those greys are
+ *      BLUE-biased (Tailwind `gray`/`slate`); on a warm ground each one reads
+ *      as a cold seam, so the ramp is rebuilt at the SAME lightness values in
+ *      the brand's hue — only the temperature changes.
+ *   3. Component overrides where stock Nextra reads as unbranded regardless of
+ *      colour: headings, code, tables, callouts, sidebar.
+ *
+ * ── One ramp, both themes ──────────────────────────────────────────────
+ * The ramp is deliberately NOT inverted under `.dark`. Tailwind tokens are
+ * addressed per-variant by the theme — the article is `text-slate-700
+ * dark:text-slate-200`, a code block is `bg-white dark:bg-black`, a rule is
+ * `ring-gray-300 dark:ring-neutral-700` — so the theme already picks the
+ * light end of the ramp for dark-mode text and the dark end for dark-mode
+ * fills. Flipping the ramp as well would paint dark-mode body copy in
+ * near-black on near-black. Only `--nextra-bg` and the brand vars below
+ * change between themes.
+ */
+
+:root {
+  /* ── Brand (canonical: assets/brand/tokens.css) ───────────────────────── */
+  --brand: #e8433a; /* Vermilion — FILL only, 3.97:1 on white */
+  --brand-press: #c22b23; /* TEXT and links on light, 5.73:1 */
+  --brand-deep: #9e1f19;
+  --brand-wash: #ffe0da;
+  --brand-tint: #fff3f1;
+  --brand-fold: #f8a79b;
+
+  /* Grounds and hairlines. */
+  --canvas: #fbf8f7;
+  --surface: #ffffff;
+  --sunken: #f5f0ee;
+  --line: #eae3e0;
+  --line-strong: #dad1cd;
+
+  /* Ink. */
+  --ink: #16130f;
+  --ink-body: #5a544f;
+  --ink-muted: #9a9490;
+
+  --success: #12855f;
+  --warning: #c67c00;
+  --warning-ink: #8a5600;
+  --warning-tint: #fff8e8;
+  --warning-line: #f0dfbb;
+
+  /* ── Nextra's knobs ───────────────────────────────────────────────────
+     The theme derives every accent from one HSL triple. Vermilion is
+     hsl(3 79% 57%); links need Press (hsl(3 69% 45%)) to clear AA on white,
+     so lightness is set to Press here and lifted in `.dark`, where the ground
+     is dark enough for Vermilion itself to pass. */
+  --nextra-primary-hue: 3deg;
+  --nextra-primary-saturation: 72%;
+  --nextra-primary-lightness: 45%;
+  --nextra-bg: 251 248 247; /* --canvas, as the space-separated triple Nextra expects */
+  --nextra-content-width: 54rem;
+
+  /* The warm ramp. Same lightness steps as Tailwind's, rotated to the ground's
+     hue. `gray` and `neutral` carry borders, wells and secondary text;
+     `slate` carries article body copy. */
+  --x-color-gray-50: #fbf8f7;
+  --x-color-gray-100: #f5f0ee;
+  --x-color-gray-200: #eae3e0;
+  --x-color-gray-300: #dad1cd;
+  --x-color-gray-400: #b3aaa5;
+  --x-color-gray-600: #6d6560;
+  --x-color-gray-700: #5a544f;
+  --x-color-gray-800: #332e2a;
+  --x-color-gray-900: #16130f;
+
+  --x-color-neutral-50: #fbf8f7;
+  --x-color-neutral-200: #eae3e0;
+  --x-color-neutral-300: #dad1cd;
+  --x-color-neutral-400: #b3aaa5;
+  --x-color-neutral-500: #8b827c;
+  --x-color-neutral-600: #6d6560;
+  --x-color-neutral-700: #453c38; /* dark-mode code-block ring — warm, not blue */
+  --x-color-neutral-800: #332e2a;
+  --x-color-neutral-900: #16130f;
+
+  --x-color-slate-50: #fbf8f7;
+  --x-color-slate-100: #f5f0ee;
+  --x-color-slate-200: #e4ddd9; /* dark-mode heading ink */
+  --x-color-slate-700: #5a544f; /* light-mode article body ink */
+  --x-color-slate-900: #16130f;
+
+  /* Type. next/font sets --font-figtree / --font-gabarito in layout.tsx. */
+  --x-font-sans: var(--font-figtree), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-gabarito), var(--font-figtree), system-ui, sans-serif;
+}
+
+/* ── Dark ───────────────────────────────────────────────────────────────
+   Not the light palette inverted (see the note above) — only the ground and
+   the brand's own light-surface values are re-solved. The ground is a warm
+   near-black in the brand's hue: a neutral #111 next to warm hairlines reads
+   as a colour cast rather than as black. */
+.dark {
+  --nextra-primary-lightness: 66%;
+  --nextra-bg: 24 20 18;
+
+  --canvas: #181412;
+  --surface: #211c1a;
+  --sunken: #14100e;
+  --line: #332c29;
+  --line-strong: #453c38;
+
+  --ink: #f7f3f1;
+  --ink-body: #c4bab5;
+  --ink-muted: #8b817b;
+
+  /* Press is a LIGHT-surface value. Re-solved for a dark ground, the same
+     link role lands here — Vermilion lifted until it clears AA on #181412. */
+  --brand-press: #ff7a70;
+  --brand-tint: #2a1a18;
+  --brand-wash: #4a2521;
+
+  --success: #46c894;
+  --warning-ink: #e0a44a;
+  --warning-tint: #2a2016;
+  --warning-line: #4a3a1e;
+}
+
+html {
+  background: var(--canvas);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Type ───────────────────────────────────────────────────────────────
+   Gabarito on headings is the single loudest signal that this is the same
+   product as imaginepdf.com — every marketing headline is set in it. Body
+   copy stays Figtree: a display face at 16px over long paragraphs is a
+   readability tax with no brand payoff. */
+article h1,
+article h2,
+article h3,
+article h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+article h1 {
+  font-weight: 800 !important;
+  font-size: 2.5rem !important;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+/* Nextra already rules the underside of an h2 (`border-b`, coloured from
+   --x-color-gray-200, which is now warm). Don't add a second rule — just give
+   the beat more air above it and set it in the display face. */
+article h2 {
+  font-weight: 700 !important;
+  font-size: 1.6rem !important;
+  margin-top: 3.25rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+article h3 {
+  font-weight: 700 !important;
+  font-size: 1.18rem !important;
+  margin-top: 2.25rem !important;
+}
+
+article p,
+article li {
+  color: var(--ink-body);
+}
+
+article h1,
+article h2,
+article h3,
+article h4 {
+  color: var(--ink) !important;
+}
+
+/* ── Links ──────────────────────────────────────────────────────────────
+   Underlined, in Press. Nextra's default is an unadorned coloured word —
+   in a page this dense that is the one place colour alone carries meaning.
+   The offset keeps the rule clear of descenders. */
+article a[href]:not(.subheading-anchor):not(.ip-card) {
+  color: var(--brand-press);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--brand-press) 30%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 120ms ease;
+}
+article a[href]:not(.subheading-anchor):not(.ip-card):hover {
+  text-decoration-color: var(--brand-press);
+}
+
+/* ── Code ───────────────────────────────────────────────────────────────
+   Inline code is a CHIP, not coloured text: brand tint, a wash border, Press
+   ink. It is the most repeated element in an API reference, so it earns one
+   deliberate treatment. */
+article :not(pre) > code {
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-wash);
+  border-radius: 5px;
+  padding: 0.12em 0.38em;
+  font-size: 0.86em;
+  color: var(--brand-press);
+}
+/* …except inside headings and links, where a chip fights the type it sits in. */
+article h1 code,
+article h2 code,
+article h3 code,
+article h4 code,
+article a code,
+article th code {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* Code BLOCKS sit in the sunken well, a step below the page. The theme draws
+   their outline as an inset RING (a box-shadow), so recolour that rather than
+   adding a border — a border here would double the line. */
+.nextra-code pre {
+  background: var(--sunken) !important;
+  border-radius: 10px;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────
+   Half this reference is parameter tables. Stock Nextra rules every cell on
+   four sides, turning each row into a strip of boxes; horizontal rules alone
+   let the eye run along a row, and a sunken header band separates labels from
+   data without a heavier line. */
+article table {
+  /* The theme ships `display:block; overflow-x:auto`, which makes the table a
+     block box — and a block box's anonymous inner table is shrink-to-fit, so
+     `width:100%` on it does nothing and every table sits short of the column.
+     `display:table` restores the real table box so the columns fill the
+     measure; long cells wrap instead of scrolling, which is the better
+     trade at this content width. */
+  display: table !important;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+/* One separator per row, not three. The theme draws a row border, a border on
+   every cell, AND a zebra fill; together they turn a parameter list into a
+   grid of boxes. Keep the single hairline under each row (below). */
+article table tr {
+  border: none !important;
+  background: transparent !important;
+}
+article table th {
+  background: var(--sunken);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted) !important;
+  text-align: left;
+  padding: 0.55rem 0.85rem !important;
+  border: none !important;
+  border-bottom: 1px solid var(--line-strong) !important;
+  white-space: nowrap;
+}
+article table td {
+  padding: 0.7rem 0.85rem !important;
+  border: none !important;
+  border-bottom: 1px solid var(--line) !important;
+  color: var(--ink-body);
+  vertical-align: top;
+}
+article table tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* ── Callouts ───────────────────────────────────────────────────────────
+   Nextra codes these blue (info) and yellow (warning). Blue is a foreign
+   colour on a vermilion-and-warm-grey page, and it is also the loudest thing
+   on any page that carries one. Info becomes a NEUTRAL card marked by a brand
+   bar on its leading edge — the emphasis moves from the fill to the edge —
+   while warning keeps a true amber, because a warning that looks like every
+   other aside has stopped warning. */
+.nextra-callout {
+  border-radius: 10px;
+  border-inline-start-width: 3px !important;
+}
+.nextra-callout.x\:bg-blue-100 {
+  background: var(--surface) !important;
+  color: var(--ink-body) !important;
+  border-color: var(--line) !important;
+  border-inline-start-color: var(--brand) !important;
+}
+.nextra-callout.x\:bg-yellow-50 {
+  background: var(--warning-tint) !important;
+  color: var(--warning-ink) !important;
+  border-color: var(--warning-line) !important;
+  border-inline-start-color: var(--warning) !important;
+}
+/* Inline code inside a callout inherits the callout's ink so the chip does not
+   become a second accent competing with the bar. */
+.nextra-callout :not(pre) > code {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-color: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────
+   Header and sidebar sit a step BELOW the content they frame — that is what
+   makes the warm page tint legible at all. A tinted page under tinted chrome
+   of the same value just reads as one flat wash. */
+.nextra-navbar-blur {
+  background: color-mix(in srgb, var(--canvas) 85%, transparent) !important;
+}
+
+/* The active sidebar item: brand tint fill, Press label. Nextra's default
+   derives from --nextra-primary-*, which is already the brand — this just
+   trades the derived pink for the palette's own tint so the sidebar matches
+   the chips in the body copy. */
+.nextra-sidebar .x\:bg-primary-100 {
+  background: var(--brand-tint) !important;
+  color: var(--brand-press) !important;
+}
+
+/* Focus. An OUTLINE, not a ring: Tailwind's ring-* is a box-shadow and is not
+   painted in forced-colors / Windows High Contrast mode. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ── Home-page furniture ─────────────────────────────────────────────────
+   Used by content/index.mdx. Plain CSS rather than components, so the MDX
+   stays readable and a static page ships no client JS for it. */
+
+.ip-hero {
+  margin-bottom: 3rem;
+}
+.ip-hero-eyebrow {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand-press);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-wash);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+}
+.ip-hero h1 {
+  margin-top: 1rem !important;
+  margin-bottom: 0.75rem !important;
+}
+.ip-hero-sub {
+  font-size: 1.15rem !important;
+  line-height: 1.6;
+  color: var(--ink-body) !important;
+  max-width: 46ch;
+}
+
+/* `auto-fit` + a minimum width rather than a fixed column count, so a 3-card
+   row and a 4-card row share one class and neither needs a breakpoint. */
+.ip-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.85rem;
+  margin: 1.5rem 0 2rem;
+}
+.ip-card {
+  display: block;
+  padding: 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  text-decoration: none !important;
+  color: inherit !important;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+.ip-card:hover {
+  border-color: var(--brand-wash);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -10px rgb(22 19 15 / 0.25);
+}
+/* MDX wraps a JSX block's multi-line children in a <p>, so the card's own
+   spacing has to survive one nested paragraph. */
+.ip-card-desc > p,
+.ip-hero-sub > p,
+.ip-steps > li > p {
+  margin: 0 !important;
+  color: inherit;
+}
+
+.ip-card-title {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+.ip-card:hover .ip-card-title {
+  color: var(--brand-press);
+}
+.ip-card-desc {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-body);
+}
+
+/* Numbered steps. The counter is a brand chip and the divider is the same
+   hairline as everything else, so the list reads as part of the page rather
+   than as an inserted widget. */
+.ip-steps {
+  counter-reset: ip-step;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 1.5rem 0 !important;
+  border-top: 1px solid var(--line);
+}
+.ip-steps > li {
+  counter-increment: ip-step;
+  position: relative;
+  padding: 0.95rem 0 0.95rem 3rem !important;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-body);
+  margin: 0 !important;
+}
+.ip-steps > li::before {
+  content: counter(ip-step);
+  position: absolute;
+  left: 0;
+  top: 0.95rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.ip-steps strong {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ip-card,
+  .ip-card:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ── Endpoint banner (components/Endpoint.tsx) ─────────────────────────── */
+
+.ip-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.ip-endpoint-method {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 0.22rem 0.5rem;
+  line-height: 1.2;
+}
+.ip-endpoint-path {
+  font-family: var(--x-font-mono, ui-monospace, monospace);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+/* The base prefix is context, not the thing being named — it repeats on every
+   endpoint on the page, so it recedes and the path stays the figure. */
+.ip-endpoint-base {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+/* ── Navbar lock-up ─────────────────────────────────────────────────────── */
+
+.ip-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.28rem;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+/* At 480px the navbar already carries search, two actions and a hamburger —
+   the wordmark is what gives, because the mark alone still identifies the
+   brand. */
+@media (max-width: 480px) {
+  .ip-wordmark {
+    display: none;
+  }
+}

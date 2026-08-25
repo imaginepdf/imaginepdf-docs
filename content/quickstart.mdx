@@ -38,9 +38,15 @@ API keys are scoped to a single workspace. See
 
 A design is a document layout. Creating it and authoring it are **two steps**:
 first create the design to get a `designId`, then add content to it. Create
-allocates the design only — a `name` and an optional `description` — and starts
-with one blank A4 page. (It does not take `actions`; sending them returns a
-`400`.)
+allocates the design only — a `name`, an optional `description`, and the paper
+format — and starts with one blank page. (It does not take `actions`; sending
+them returns a `400`.)
+
+The first page is born at the requested size, so pass `size` and `orientation`
+here rather than flipping the page afterwards: `A4` (the default), `A3`, `A5`,
+`Letter` or `Legal`, `portrait` or `landscape`. For a custom sheet, send
+`width` and `height` in **points** instead — the two forms are mutually
+exclusive.
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
@@ -66,12 +72,15 @@ The response carries the new `designId` — you'll author against it next:
 ## 3. Add content with actions
 
 Build the design by sending an ordered batch of **actions** to
-`PATCH /api/v1/designs/:id`. Each action does one thing; the list applies in
-order, atomically. The smallest useful batch is two actions: add a text element
-and bind it as a variable.
+`PATCH /api/v1/designs/:id/tree`. Each action does one thing; the list applies
+in order, atomically. The smallest useful batch is two actions: add a text
+element and bind it as a variable.
+
+The `/tree` suffix matters: `PATCH /api/v1/designs/:id` without it is the
+**metadata** endpoint (rename and re-describe) and rejects `actions`.
 
 ```bash
-curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
+curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123/tree \
   -H "X-API-Key: $IMAGINEPDF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

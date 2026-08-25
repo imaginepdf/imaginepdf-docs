@@ -7,9 +7,7 @@ import { Callout } from 'nextra/components'
 
 # Generate a PDF
 
-```
-POST /designs/:designId/generate
-```
+<Endpoint method="POST" path="/designs/:designId/generate" />
 
 Renders one PDF from a design, substituting variable values, and returns a
 temporary presigned download URL. Costs **1 credit**.
@@ -25,6 +23,7 @@ temporary presigned download URL. Costs **1 credit**.
 | Field | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
 | `data` | object | no | Variable name → value. Omit for a design with no variables. |
+| `pdfProfile` | string | no | Compliance output: `accessible` (tagged PDF/UA-1 — screen-reader structure, reading order, alt text) or `pdf-a` (archival PDF/A-3b, also tagged). Omit or `standard` for regular output. Same credit cost. Validating with an accessibility checker (axesCheck, PAC, `verapdf --flavour ua1`)? Use `accessible` — `pdf-a` targets archival validation (veraPDF 3b) and does not claim PDF/UA. |
 
 ```bash
 curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" \
@@ -35,7 +34,8 @@ curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" 
       "invoice_number": "INV-001",
       "customer_name": "Acme Corp",
       "amount": "$1,000.00"
-    }
+    },
+    "pdfProfile": "accessible"
   }'
 ```
 
@@ -45,9 +45,10 @@ curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" 
 {
   "status": "success",
   "data": {
+    "generationId": "gen_abc123",
     "designId": "design_abc123",
     "filename": "Invoice.pdf",
-    "downloadUrl": "https://storage.imaginepdf.com/....pdf?signature=...",
+    "downloadUrl": "https://storage.googleapis.com/...output.pdf?X-Goog-Signature=...",
     "expiresIn": 3600,
     "status": "completed"
   },
@@ -55,6 +56,8 @@ curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/generate" 
 }
 ```
 
+- `generationId` — stable identifier for this render. The PDF bytes expire, but
+  this id does not — store it to correlate a document with the run that made it.
 - `downloadUrl` — presigned URL to the rendered PDF.
 - `expiresIn` — seconds the URL stays valid (3600 = one hour).
 - `filename` — suggested filename, derived from the design name.

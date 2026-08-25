@@ -13,9 +13,10 @@ your workspace **plan**.
 ## Credits
 
 - Generating a PDF costs **1 credit** per document.
-- A batch job costs **1 credit per row** — a 500-row batch needs 500 credits.
-- **Previews are free** — `GET /api/v1/preview` never consumes credits, so use
-  it freely while iterating.
+- A batch job costs **1 credit per row** — a 100-row batch needs 100 credits.
+  (100 rows is also the per-job maximum; split larger runs across jobs.)
+- **Previews are free** — `GET /api/v1/designs/:id/preview` never consumes
+  credits, so use it freely while iterating.
 
 If your workspace has insufficient credits, the request fails with HTTP **402**
 and error code `INSUFFICIENT_CREDITS`:

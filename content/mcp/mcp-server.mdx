@@ -1,0 +1,120 @@
+---
+title: Hosted MCP server
+description: Connect Claude, Cursor, or any MCP client to ImaginePDF and let it design and generate PDFs directly.
+---
+
+import { Callout } from 'nextra/components'
+
+# Hosted MCP server
+
+ImaginePDF runs a hosted [Model Context Protocol](https://modelcontextprotocol.io)
+server. Point an MCP client at it and the assistant can author designs, upload
+images, render previews, and generate PDFs in your workspace — the same
+operations as the [REST API](/api/overview), exposed as tools it can call
+itself.
+
+<Endpoint method="POST" path="/mcp" base="https://api.imaginepdf.com" />
+
+It speaks **Streamable HTTP** and is stateless: every call is a self-contained
+`POST`, there is no session to establish and no SSE stream to hold open. `GET`
+and `DELETE` return `405`.
+
+## Connecting
+
+### Claude, and other OAuth clients
+
+Add `https://api.imaginepdf.com/mcp` as a custom connector. The server
+advertises its authorization server per RFC 9728, so the client discovers the
+OAuth endpoints on its own — you sign in and approve access, and no key is
+copied anywhere.
+
+<Callout type="info">
+  The OAuth path is **not** gated on the `useApiKeys` plan feature. Signing in
+  through the consent screen is the free-plan route onto the MCP server; API
+  keys still require a plan that includes API access.
+</Callout>
+
+### Cursor, and clients that send custom headers
+
+Use a workspace API key on the `X-API-Key` header:
+
+```json
+{
+  "mcpServers": {
+    "imaginepdf": {
+      "url": "https://api.imaginepdf.com/mcp",
+      "headers": { "X-API-Key": "pc_live_..." }
+    }
+  }
+}
+```
+
+Clients that can only send `Authorization` work too — put the key there as a
+bearer value (`Authorization: Bearer pc_live_...`). The `pc_live_` prefix is
+what tells the server it is a key rather than an OAuth token, so the two never
+collide.
+
+## Tools
+
+| Tool | Does |
+| ---- | ---- |
+| `get_authoring_guide` | The design workflow, sizing contract, styling vocabulary and palettes. Read this first. |
+| `list_actions` | The authoring action catalog — same data as [`GET /actions`](/api/designs#get-the-action-catalog). |
+| `list_fonts` | The font catalog — same data as [`GET /fonts`](/api/designs#get-the-font-catalog). |
+| `create_design` | Allocate a design and its first page. |
+| `list_designs` | Designs in the workspace. |
+| `get_design` | Design metadata. |
+| `get_design_tree` | The full layout as JSON. |
+| `update_design_metadata` | Rename or re-describe. |
+| `apply_actions` | Author the layout — the ordered, atomic actions batch. |
+| `upload_image` | Upload an image and get an `uploads:<id>` ref. |
+| `preview_design` | Render one page to a PNG. **Free.** |
+| `generate_pdf` | Render the PDF. Costs 1 credit. |
+| `batch_generate` | One PDF per row of a dataset. |
+| `get_batch_status` | Poll a batch job. |
+| `get_batch_download` | Presigned URL for the batch ZIP. |
+
+The authoring guide is also published as an MCP **resource** at
+`imaginepdf://authoring-guide`, for clients that surface resources. The tool is
+the primary path — not every client does.
+
+## Scope and limits
+
+- **Workspace-scoped**, exactly like an API key: designs, uploads, credits and
+  batch jobs all belong to one workspace.
+- **Credits apply.** `generate_pdf` costs 1 credit and `batch_generate` costs 1
+  per row, the same as over HTTP. `preview_design` is free.
+- **`batch_generate` is plan-gated** on the `batchGenerate` feature and is
+  enforced per tool call, whichever credential you connected with. See
+  [Credits & plans](/concepts/credits-and-plans).
+
+## Errors
+
+Transport-level failures are JSON-RPC shaped, not the REST
+`{ status, data, error }` envelope:
+
+| HTTP | JSON-RPC `code` | Meaning |
+| ---- | --------------- | ------- |
+| 401 | `-32001` | No credential, or the key/token is invalid or expired. |
+| 403 | `-32001` | Valid credential, but the workspace plan lacks the feature. |
+| 405 | `-32000` | `GET`/`DELETE` — the server is stateless; use `POST`. |
+
+Failures *inside* a tool come back as a normal tool result with `isError: true`
+and a message the assistant can act on, not as a transport error.
+
+## MCP or the plugin?
+
+Both let an assistant build PDFs; they are not the same road.
+
+- The [**Claude Code plugin**](/plugin/claude-code) ships opinionated *skills* —
+  `imaginepdf:design` and `imaginepdf:generate` — that carry the design taste
+  and workflow with them. Best inside Claude Code.
+- The **MCP server** exposes the raw tools to any MCP client. Best when you are
+  not in Claude Code, or when you want the assistant driving the primitives
+  directly.
+
+## Related
+
+- [API Reference](/api/overview) — the same operations over plain HTTP.
+- [Authentication](/api/authentication) — creating a workspace API key.
+- [Designs](/concepts/designs) — the action model the authoring tools use.

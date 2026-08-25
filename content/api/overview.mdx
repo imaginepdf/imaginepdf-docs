@@ -76,14 +76,31 @@ On failure:
 
 | Area | Endpoints |
 | --- | --- |
-| [Designs](/api/designs) | `POST /designs`, `GET /designs`, `GET /designs/:id`, `GET /designs/:id/tree`, `PATCH /designs/:id`, `PATCH /designs/:id/tree`, `GET /actions`, `GET /fonts` |
+| [Authentication](/api/authentication) | `GET /me` |
+| [Designs](/api/designs) | `POST /designs`, `GET /designs`, `GET /designs/:id`, `GET /designs/:id/tree`, `PATCH /designs/:id`, `PATCH /designs/:id/tree` |
+| [Catalogs](/api/designs#get-the-action-catalog) | `GET /actions`, `GET /fonts` |
 | [Uploads](/api/uploads) | `POST /uploads` |
 | [Generate](/api/generate) | `POST /designs/:id/generate` |
 | [Preview](/api/preview) | `GET /designs/:id/preview?page=:n` |
 | [Batch](/api/batch) | `POST /designs/:id/batch`, `GET /batches/:jobId`, `GET /batches/:jobId/download` |
+
+Authoring is split across two `PATCH` routes and it matters which you call:
+`PATCH /designs/:id` is **metadata** (rename, re-describe) and
+`PATCH /designs/:id/tree` is **authoring** (the actions batch). Sending
+`actions` to the metadata route is a `400`.
 
 ## Conventions used in this reference
 
 - All paths are relative to `https://api.imaginepdf.com/api/v1`.
 - Examples use a `$IMAGINEPDF_API_KEY` shell variable for the key.
 - Response bodies show the value of `data` unless an error is being illustrated.
+
+## Not writing HTTP by hand?
+
+The same operations are available two other ways, both backed by this API:
+
+- The [**hosted MCP server**](/mcp/mcp-server) at
+  `https://api.imaginepdf.com/mcp` — connect Claude, Cursor or any MCP client
+  and let the assistant call these operations as tools.
+- The [**Claude Code plugin**](/plugin/claude-code) — opinionated design and
+  generate skills for the terminal.

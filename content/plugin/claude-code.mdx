@@ -94,6 +94,13 @@ The plugin is a thin client over the public API: it issues the same
 [`actions`](/api/designs#the-actions) — singular, validated authoring
 operations. Anything the plugin does, you can do directly over HTTP.
 
+## Not using Claude Code?
+
+The [hosted MCP server](/mcp/mcp-server) exposes the same operations as tools
+to any MCP client — Claude, Cursor, and anything else that speaks the protocol.
+The plugin is the better fit inside Claude Code, because its skills carry the
+design workflow with them; the MCP server is the better fit everywhere else.
+
 <Callout type="info">
   Designs created from the plugin live in your workspace just like any other —
   open them in the [visual editor](/editor/visual-editor) to refine, or generate

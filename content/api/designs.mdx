@@ -17,15 +17,13 @@ variable). Actions apply **sequentially and atomically**; see
 
 ## Create a design
 
-```
-POST /designs
-```
+<Endpoint method="POST" path="/designs" />
 
-Creates a design — a `name` and an optional `description`. **Create allocates
-the design only; it does not author content.** A new design starts with one
-blank A4 page; you build it by sending actions to
-[`PATCH /designs/:id/tree`](#update-the-tree). Posting `actions` to this endpoint
-is **rejected with a `400`** — creation and authoring are separate steps.
+Creates a design — a `name`, an optional `description`, and the paper format.
+**Create allocates the design only; it does not author content.** You build it
+by sending actions to [`PATCH /designs/:id/tree`](#update-the-tree). Posting
+`actions` to this endpoint is **rejected with a `400`** — creation and authoring
+are separate steps.
 
 **Body**
 
@@ -33,6 +31,19 @@ is **rejected with a `400`** — creation and authoring are separate steps.
 | ----- | ---- | -------- | ----- |
 | `name` | string | yes | Display name. |
 | `description` | string | no | Optional description. |
+| `size` | string | no | `A4` (default), `A3`, `A5`, `Letter`, `Legal`. |
+| `orientation` | string | no | `portrait` (default) or `landscape`. |
+| `width` | number | no | Custom page width in **points**. Mutually exclusive with `size`. |
+| `height` | number | no | Custom page height in **points**. Must be sent with `width`. |
+
+The design's first page is born at the requested format, so set it here rather
+than flipping the page afterwards. `width`/`height` are taken literally —
+`orientation` is ignored for a custom sheet — and sending both a `size` and
+custom dimensions is a `400`. To change the paper on an existing design, use the
+[`update_page`](#the-actions) action.
+
+The body is **strict**: any unknown key, `actions` included, is a loud `400`
+rather than a silently-ignored create.
 
 ```bash
 curl -X POST https://api.imaginepdf.com/api/v1/designs \
@@ -68,9 +79,7 @@ returns one `result` per action — each echoing the minted `id` and the
 
 ## List designs
 
-```
-GET /designs
-```
+<Endpoint method="GET" path="/designs" />
 
 Returns designs in the workspace, paginated. Folders are excluded.
 
@@ -115,9 +124,7 @@ When `nextCursor` is non-null, pass it back as `cursor` to fetch the next page.
 
 ## Get a design (metadata)
 
-```
-GET /designs/:id
-```
+<Endpoint method="GET" path="/designs/:id" />
 
 Returns the design's **metadata** only — not the tree. Cheap: read names and
 timestamps without pulling the whole layout. Fetch the layout separately with
@@ -149,9 +156,7 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 
 ## Get the design tree
 
-```
-GET /designs/:id/tree
-```
+<Endpoint method="GET" path="/designs/:id/tree" />
 
 Returns the full design tree (the `pdftreejs` `PDFTree`) as **raw JSON**. This is
 the one endpoint that does **not** use the `{status, data, error}` envelope — the
@@ -177,9 +182,7 @@ curl https://api.imaginepdf.com/api/v1/designs/design_abc123/tree \
 
 ## Update a design (metadata)
 
-```
-PATCH /designs/:id
-```
+<Endpoint method="PATCH" path="/designs/:id" />
 
 Rename / re-describe. **Metadata only — it never touches the tree.** Provide
 **at least one** of `name`, `description`.
@@ -197,9 +200,7 @@ curl -X PATCH https://api.imaginepdf.com/api/v1/designs/design_abc123 \
 
 ## Update the tree
 
-```
-PATCH /designs/:id/tree
-```
+<Endpoint method="PATCH" path="/designs/:id/tree" />
 
 Apply an ordered batch of authoring **actions** — including the first batch on a
 freshly-created design. Body: `{ "actions": [ … ] }` (1–500 actions).
@@ -248,15 +249,17 @@ is saved and the error names the failing index, e.g.
 
 | Action | Does |
 | ------ | ---- |
-| `add_element` | Add ONE element (`text`, `image`, `qr`, `barcode`, `shape`, `table`). The id is server-minted; give it a unique `name`. |
-| `update_element` | Merge changes into one element (by `name` or `id`); `newName` renames it. |
+| `add_element` | Add ONE element (`text`, `image`, `table`, `shape`, `icon`, `qr`, `barcode`). The id is server-minted; give it a unique `name`. |
+| `update_element` | Merge changes into one element (by `name` or `id`); `newName` renames it. `isLocked` and `isHidden` also live here — a hidden element is dropped from the rendered PDF, not just the canvas. |
 | `remove_element` | Remove one element and any variable bound to it. |
 | `reorder_element` | Change paint order: `to: "front" \| "back" \| "forward" \| "backward" \|` index. |
 | `bind_variable` | Make one element fillable at generation time (args: just `{name}` or `{id}`). |
 | `unbind_variable` | Remove the variable bound to one element. |
-| `add_page` | Append a page (width/height/orientation/background). |
-| `set_page_background` | Set or clear (null) a page background. |
-| `set_document_background` | Set or clear the document-level background. |
+| `add_page` | Append a page (`width`/`height`/`orientation`/background). Pass `orientation` and the dimensions follow — no separate swap. |
+| `update_page` | Edit an EXISTING page in place: size, `orientation`, `name`, background. This is how you change an existing design's paper; for a new one, set `size`/`orientation` at create time. |
+| `remove_page` | Remove a page and its elements. The document must keep at least one — removing the last page is rejected. |
+| `set_page_background` | Set or clear (`null`) one page's background — `backgroundColor` (hex or gradient), `backgroundImage`, `backgroundSize`. Merged per field. |
+| `set_document_background` | The same longhands at document level; cascades to pages without their own. |
 | `set_metadata` | Set author / subject / keywords / creator. |
 
 ### Sizing is derived
@@ -269,20 +272,40 @@ element type:
 | `text` | `{ x, y, maxWidth? }` | Content + `fontSize` + `lineHeight`. `maxWidth` (points) pins the box width **exactly** — content wraps inside it; set it for paragraphs and for right/center-aligned text so the aligned edge stays put. Omit it and the box hugs the content. |
 | `table` | `{ x, y }` | The grid: `data.columnWidths` (points, one per column) or `data.width` (total, split equally); row heights follow cell content. |
 | `qr` | `{ x, y, size }` | Always square. |
-| `image`, `barcode`, `shape` | `{ x, y, w, h }` | Explicit box. |
+| `image`, `barcode`, `shape`, `icon` | `{ x, y, w, h }` | Explicit box. |
 
 Sending `w`/`h` for a text or table is rejected with an error that names the
 fix (e.g. `position.w is not allowed for text — width is derived; use
 position.maxWidth`). Every `add_element` / `update_element` result echoes the
 final derived box.
 
+### Data by type
+
+`data` is the element's semantic payload; like `position`, its shape follows
+the type.
+
+| Type | `data` |
+| ---- | ------ |
+| `text` | `{ content }` — a string, or an array of item strings when `listFormat` is `ordered`/`unordered`. Plus `listStart`, `dataType`, `format`. |
+| `image` | `{ src }` — an `uploads:<id>` / `assets:<id>` ref, a `data:` URI (auto-converted to an upload), or an `https://` URL (fetched once and frozen). Optional `crop` as normalized 0–1 fractions. |
+| `table` | `{ rows, columns, columnWidths, width, cells, headerRow, headerColumn }`. `cells` is a 2-D array; each entry is a plain string or a `{ type, data, styles }` cell. Max 500 rows × 50 columns. |
+| `shape` | `{ shapeType: "rectangle" \| "circle" \| "line" \| "arrow" }`. |
+| `icon` | `{ iconId }` — an id from the bundled outline-icon catalog, e.g. `star`, `check-circle`, `mail`, `map-pin`, `lock`. |
+| `qr` | `{ content }`. |
+| `barcode` | `{ content, format, displayValue }` — `format` defaults to `CODE128`. |
+
+<Callout type="warning">
+  The icon catalog is **not yet exposed over the API** — there is no
+  `GET /icons`. The ids are the ones the visual editor's icon picker offers;
+  until the endpoint lands, pick icons there, or use an uploaded SVG, which
+  gives you any artwork you like and is not restricted to a catalog.
+</Callout>
+
 ---
 
 ## Get the action catalog
 
-```
-GET /actions
-```
+<Endpoint method="GET" path="/actions" />
 
 Returns every authoring action and its args schema. Use this to discover what
 `actions[].args` should contain.
@@ -312,4 +335,51 @@ curl https://api.imaginepdf.com/api/v1/actions \
   are rejected with a message that says the fix. The catalog at `GET /actions`
   is the machine-readable source of truth; treat it as authoritative rather
   than hard-coding shapes from these examples.
+</Callout>
+
+---
+
+## Get the font catalog
+
+<Endpoint method="GET" path="/fonts" />
+
+Returns every font the product supports. The catalog is deterministic and
+closed: the editor's picker offers exactly these, and `styles.fontFamily` is
+validated against them — there is no runtime font registration, so a family
+that is not here cannot be used.
+
+Each entry's `id` **is** the proper family name, and that is the string you put
+in `styles.fontFamily`.
+
+```bash
+curl https://api.imaginepdf.com/api/v1/fonts \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "fonts": [
+      { "id": "Inter", "class": "sans", "source": "google", "weights": [400, 500, 600, 700], "tags": ["recommended"] },
+      { "id": "Playfair Display", "class": "serif", "source": "google", "weights": [400, 700] }
+    ]
+  },
+  "error": null
+}
+```
+
+| Field | Notes |
+| ----- | ----- |
+| `id` | The family name. Pass it verbatim as `styles.fontFamily`. |
+| `class` | `sans`, `serif`, `display`, or `handwriting` — the picker's grouping. |
+| `source` | `google`, or `bundled` for families whose files ship in-repo. |
+| `weights` | The weights that family actually has. Asking for one it lacks falls back to the nearest. |
+| `tags` | `recommended` / `popular`, where present. |
+
+<Callout type="info">
+  Adding a font is a release of the shared `pdftreejs` catalog, not a runtime
+  registration — so cache this response rather than fetching it per request.
 </Callout>

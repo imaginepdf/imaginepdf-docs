@@ -24,9 +24,7 @@ All paths are relative to `https://api.imaginepdf.com/api/v1`.
 
 ## Submit a batch
 
-```
-POST /designs/:designId/batch
-```
+<Endpoint method="POST" path="/designs/:designId/batch" />
 
 **Path parameters**
 
@@ -39,6 +37,7 @@ POST /designs/:designId/batch
 | Field | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
 | `rows` | array | yes | Each element is a `data` object (variable → value). 1–100 rows. |
+| `pdfProfile` | string | no | Compliance output applied to every row: `accessible` (tagged PDF/UA-1) or `pdf-a` (archival PDF/A-3b). Omit or `standard` for regular output. |
 
 ```bash
 curl -X POST "https://api.imaginepdf.com/api/v1/designs/design_abc123/batch" \
@@ -73,9 +72,7 @@ Up to **100 rows** per batch.
 
 ## Poll job status
 
-```
-GET /batches/:jobId
-```
+<Endpoint method="GET" path="/batches/:jobId" />
 
 ```bash
 curl https://api.imaginepdf.com/api/v1/batches/job_abc123xyz \
@@ -107,9 +104,7 @@ reaches `completed`.
 
 ## Download the result
 
-```
-GET /batches/:jobId/download
-```
+<Endpoint method="GET" path="/batches/:jobId/download" />
 
 Returns a presigned URL to the output ZIP (one PDF per successful row).
 

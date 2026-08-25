@@ -37,6 +37,43 @@ curl https://api.imaginepdf.com/api/v1/designs \
   -H "X-API-Key: $IMAGINEPDF_API_KEY"
 ```
 
+## Verifying a key
+
+<Endpoint method="GET" path="/me" />
+
+Returns the workspace the key belongs to. It is the cheapest way to check a key
+and the natural "connection test" for an integration — use it instead of listing
+designs.
+
+```bash
+curl https://api.imaginepdf.com/api/v1/me \
+  -H "X-API-Key: $IMAGINEPDF_API_KEY"
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "workspaceId": "ws_abc123",
+    "workspaceName": "Acme Inc",
+    "userEmail": "you@acme.com",
+    "keyName": "Zapier"
+  },
+  "error": null
+}
+```
+
+`workspaceName` is a good label to show users when they connect an ImaginePDF
+account, and `keyName` distinguishes two keys issued from the same workspace.
+
+<Callout type="info">
+  This route answers "is the key valid **and** entitled". A key belonging to a
+  workspace whose plan lacks `useApiKeys` returns **403**, not 200 — see Scope
+  below.
+</Callout>
+
 ## Scope
 
 - **Workspace-scoped.** A key acts within exactly one workspace. Designs,
